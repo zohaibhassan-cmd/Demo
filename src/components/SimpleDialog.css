@@ -1,0 +1,57 @@
+.simple-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(45, 52, 64, 0.65);
+}
+
+.simple-dialog {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 1.25rem 1.4rem;
+  border: 1px solid #c5cbd6;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.simple-dialog__close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.6rem;
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.simple-dialog h2 {
+  margin: 0 0 0.65rem;
+  color: #0b2a5b;
+  font-size: 1.15rem;
+}
+
+.simple-dialog p {
+  margin: 0;
+  color: #333;
+  line-height: 1.45;
+}
+
+.simple-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+.simple-dialog__ok {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #0b2a5b;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}

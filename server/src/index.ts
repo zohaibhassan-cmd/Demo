@@ -3,6 +3,7 @@ import express from 'express'
 import { filtersRouter } from './routes/filters.js'
 import { fundingRouter } from './routes/funding.js'
 import { ordersRouter } from './routes/orders.js'
+import { placeOrderRouter } from './routes/placeOrder.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 4000
@@ -21,6 +22,7 @@ app.get('/api/cart', (_req, res) => {
 app.use('/api/filters', filtersRouter)
 app.use('/api/funding', fundingRouter)
 app.use('/api/orders', ordersRouter)
+app.use('/api/place-order', placeOrderRouter)
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)

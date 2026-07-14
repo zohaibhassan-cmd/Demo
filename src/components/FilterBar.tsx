@@ -16,6 +16,7 @@ type FilterBarProps = {
   onProductDetails?: () => void
   onPlaceOrder?: () => void
   onAddressBook?: () => void
+  onCart?: () => void
 }
 
 export type { FilterValues }
@@ -35,6 +36,7 @@ export function FilterBar({
   onProductDetails,
   onPlaceOrder,
   onAddressBook,
+  onCart,
 }: FilterBarProps) {
   function update(id: keyof FilterValues, value: string) {
     onChange({ ...values, [id]: value })
@@ -72,7 +74,12 @@ export function FilterBar({
         <button type="button" className="filter-bar__btn" onClick={onAddressBook}>
           Address Book
         </button>
-        <button type="button" className="filter-bar__cart" aria-label={`Cart, ${cartCount} items`}>
+        <button
+          type="button"
+          className="filter-bar__cart"
+          aria-label={`Cart, ${cartCount} items`}
+          onClick={onCart}
+        >
           <CartIcon />
           {cartCount > 0 ? (
             <span className="filter-bar__cart-badge">{cartCount}</span>

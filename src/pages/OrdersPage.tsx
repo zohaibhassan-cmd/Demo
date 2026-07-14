@@ -4,6 +4,8 @@ import { Footer } from '../components/Footer'
 import { FilterBar } from '../components/FilterBar'
 import { FundingCards } from '../components/FundingCards'
 import { OrdersTable } from '../components/OrdersTable'
+import { PlaceOrderModal } from '../components/PlaceOrderModal'
+import { SimpleDialog } from '../components/SimpleDialog'
 import {
   exportOrdersUrl,
   fetchCartCount,
@@ -50,6 +52,8 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [cartCount, setCartCount] = useState(0)
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
+  const [infoDialog, setInfoDialog] = useState<{ title: string; message: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -143,9 +147,25 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         options={filterOptions}
         onChange={setFilters}
         cartCount={cartCount}
-        onProductDetails={() => undefined}
-        onPlaceOrder={() => undefined}
-        onAddressBook={() => undefined}
+        onProductDetails={() =>
+          setInfoDialog({
+            title: 'Product Details',
+            message: 'Product Details screen will open here. Button is active.',
+          })
+        }
+        onPlaceOrder={() => setPlaceOrderOpen(true)}
+        onAddressBook={() =>
+          setInfoDialog({
+            title: 'Address Book',
+            message: 'Address Book screen will open here. Button is active.',
+          })
+        }
+        onCart={() =>
+          setInfoDialog({
+            title: 'Cart',
+            message: `You have ${cartCount} item(s) in the cart. Full Cart screen coming next.`,
+          })
+        }
       />
 
       <main className="orders-page__main">
@@ -178,6 +198,14 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
       </main>
 
       <Footer />
+
+      <PlaceOrderModal open={placeOrderOpen} onClose={() => setPlaceOrderOpen(false)} />
+      <SimpleDialog
+        open={Boolean(infoDialog)}
+        title={infoDialog?.title ?? ''}
+        message={infoDialog?.message ?? ''}
+        onClose={() => setInfoDialog(null)}
+      />
     </div>
   )
 }
