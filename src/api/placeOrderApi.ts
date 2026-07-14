@@ -461,3 +461,51 @@ export async function submitSuspendItem(draftId: string, input: SuspendItemInput
     review: ReviewOrderPayload
   }>(`/api/place-order/${draftId}/suspend-item`, 'POST', input)
 }
+
+export type DeactivateOptions = {
+  ruiNickname: string[]
+  bureauDesignator: string[]
+  unitCost: number
+}
+
+export type DeactivateContext = {
+  draftId: string
+  clin: string
+  bureau: string
+  nickname: string
+  orderType: string
+  fundingAvailableBeforeFormatted: string
+  unitCost: number
+  unitCostFormatted: string
+  costRemainingForClinFormatted: string
+  cartCount: number
+}
+
+export type DeactivateItemInput = {
+  mobileNumber: string
+  firstName: string
+  lastName: string
+  email: string
+  ruiNickname1: string
+  ruiNickname2: string
+  bureauDesignator: string
+  deactivateDate: string
+  unitCost: number
+}
+
+export async function fetchDeactivateOptions() {
+  return getJson<DeactivateOptions>('/api/place-order/deactivate/options')
+}
+
+export async function fetchDeactivateContext(draftId: string) {
+  return getJson<DeactivateContext>(`/api/place-order/${draftId}/deactivate-context`)
+}
+
+export async function submitDeactivateItem(draftId: string, input: DeactivateItemInput) {
+  return sendJson<{
+    cartCount: number
+    costRemainingForClinFormatted: string
+    message: string
+    review: ReviewOrderPayload
+  }>(`/api/place-order/${draftId}/deactivate-item`, 'POST', input)
+}

@@ -20,6 +20,7 @@ type PlaceOrderModalProps = {
   onOpenInternationalPass?: (draftId: string) => void
   onOpenReplaceUpgrade?: (draftId: string) => void
   onOpenSuspend?: (draftId: string) => void
+  onOpenDeactivate?: (draftId: string) => void
 }
 
 export function PlaceOrderModal({
@@ -31,6 +32,7 @@ export function PlaceOrderModal({
   onOpenInternationalPass,
   onOpenReplaceUpgrade,
   onOpenSuspend,
+  onOpenDeactivate,
 }: PlaceOrderModalProps) {
   const [step, setStep] = useState<Step>('start')
   const [bureauOptions, setBureauOptions] = useState<string[]>([])
@@ -151,6 +153,8 @@ export function PlaceOrderModal({
         onOpenReplaceUpgrade?.(result.draft.id)
       } else if (value === 'Suspend') {
         onOpenSuspend?.(result.draft.id)
+      } else if (value === 'Deactivate') {
+        onOpenDeactivate?.(result.draft.id)
       } else {
         onOpenReview?.(result.draft.id)
       }

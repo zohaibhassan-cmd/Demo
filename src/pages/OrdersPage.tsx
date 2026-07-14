@@ -9,6 +9,7 @@ import { NewOrderModal } from '../components/NewOrderModal'
 import { InternationalPassModal } from '../components/InternationalPassModal'
 import { ReplaceUpgradeModal } from '../components/ReplaceUpgradeModal'
 import { SuspendModal } from '../components/SuspendModal'
+import { DeactivateModal } from '../components/DeactivateModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { OrderSummaryModal } from '../components/OrderSummaryModal'
 import { ItemizationModal } from '../components/ItemizationModal'
@@ -65,7 +66,9 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [intlPassDraftId, setIntlPassDraftId] = useState<string | null>(null)
   const [replaceUpgradeDraftId, setReplaceUpgradeDraftId] = useState<string | null>(null)
   const [suspendDraftId, setSuspendDraftId] = useState<string | null>(null)
+  const [deactivateDraftId, setDeactivateDraftId] = useState<string | null>(null)
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
+  const [activeCartDraftId, setActiveCartDraftId] = useState<string | null>(null)
   const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
   const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
   const [itemizeOrderId, setItemizeOrderId] = useState<string | null>(null)
@@ -176,14 +179,20 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
             message: 'Address Book screen will open here. Button is active.',
           })
         }
-        onCart={() =>
+        onCart={() => {
+          if (activeCartDraftId && cartCount > 0) {
+            setReviewDraftId(activeCartDraftId)
+            return
+          }
           setInfoDialog({
             title: 'Cart',
-            message: `You have ${cartCount} item(s) in the cart. Full Cart screen coming next.`,
+            message:
+              cartCount > 0
+                ? `You have ${cartCount} item(s) in the cart. Open Place Order to continue checkout.`
+                : 'Your cart is empty. Use Place Order to add items.',
           })
-        }
+        }}
       />
-
       <main className="orders-page__main">
         {error ? <p className="orders-page__error">{error}</p> : null}
 
@@ -220,11 +229,15 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
       <PlaceOrderModal
         open={placeOrderOpen}
         onClose={() => setPlaceOrderOpen(false)}
-        onOpenReview={(draftId) => setReviewDraftId(draftId)}
+        onOpenReview={(draftId) => {
+          setActiveCartDraftId(draftId)
+          setReviewDraftId(draftId)
+        }}
         onOpenNewOrder={(draftId) => setNewOrderDraftId(draftId)}
         onOpenInternationalPass={(draftId) => setIntlPassDraftId(draftId)}
         onOpenReplaceUpgrade={(draftId) => setReplaceUpgradeDraftId(draftId)}
         onOpenSuspend={(draftId) => setSuspendDraftId(draftId)}
+        onOpenDeactivate={(draftId) => setDeactivateDraftId(draftId)}
       />
       <NewOrderModal
         open={Boolean(newOrderDraftId)}
@@ -234,8 +247,9 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setNewOrderDraftId(null)
           setPlaceOrderOpen(true)
         }}
-        onGoToCart={(draftId, cartCount) => {
-          setCartCount(cartCount)
+        onGoToCart={(draftId, nextCartCount) => {
+          setCartCount(nextCartCount)
+          setActiveCartDraftId(draftId)
           setNewOrderDraftId(null)
           setReviewDraftId(draftId)
         }}
@@ -248,8 +262,9 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setIntlPassDraftId(null)
           setPlaceOrderOpen(true)
         }}
-        onGoToCart={(draftId, cartCount) => {
-          setCartCount(cartCount)
+        onGoToCart={(draftId, nextCartCount) => {
+          setCartCount(nextCartCount)
+          setActiveCartDraftId(draftId)
           setIntlPassDraftId(null)
           setReviewDraftId(draftId)
         }}
@@ -262,8 +277,9 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setReplaceUpgradeDraftId(null)
           setPlaceOrderOpen(true)
         }}
-        onGoToCart={(draftId, cartCount) => {
-          setCartCount(cartCount)
+        onGoToCart={(draftId, nextCartCount) => {
+          setCartCount(nextCartCount)
+          setActiveCartDraftId(draftId)
           setReplaceUpgradeDraftId(null)
           setReviewDraftId(draftId)
         }}
@@ -276,9 +292,25 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setSuspendDraftId(null)
           setPlaceOrderOpen(true)
         }}
-        onGoToCart={(draftId, cartCount) => {
-          setCartCount(cartCount)
+        onGoToCart={(draftId, nextCartCount) => {
+          setCartCount(nextCartCount)
+          setActiveCartDraftId(draftId)
           setSuspendDraftId(null)
+          setReviewDraftId(draftId)
+        }}
+      />
+      <DeactivateModal
+        open={Boolean(deactivateDraftId)}
+        draftId={deactivateDraftId}
+        onClose={() => setDeactivateDraftId(null)}
+        onBack={() => {
+          setDeactivateDraftId(null)
+          setPlaceOrderOpen(true)
+        }}
+        onGoToCart={(draftId, nextCartCount) => {
+          setCartCount(nextCartCount)
+          setActiveCartDraftId(draftId)
+          setDeactivateDraftId(null)
           setReviewDraftId(draftId)
         }}
       />
@@ -286,14 +318,23 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         open={Boolean(reviewDraftId)}
         draftId={reviewDraftId}
         onClose={() => setReviewDraftId(null)}
-        onAddMore={() => {
+        onLoaded={(review) => {
+          setCartCount(review.cartCount)
+          setActiveCartDraftId(review.draftId)
+        }}
+        onAddMore={(orderType) => {
           if (!reviewDraftId) return
           const id = reviewDraftId
           setReviewDraftId(null)
-          setNewOrderDraftId(id)
+          if (orderType === 'International Pass') setIntlPassDraftId(id)
+          else if (orderType === 'Replace-Upgrade') setReplaceUpgradeDraftId(id)
+          else if (orderType === 'Suspend') setSuspendDraftId(id)
+          else if (orderType === 'Deactivate') setDeactivateDraftId(id)
+          else setNewOrderDraftId(id)
         }}
         onPlaced={(review) => {
           setCartCount(0)
+          setActiveCartDraftId(null)
           setReviewDraftId(null)
           setOrderSummary(review.summary ?? null)
           setSummaryDraftId(review.draftId)

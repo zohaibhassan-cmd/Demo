@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  addReviewItem,
   deleteReviewItem,
   fetchReviewOrder,
   placeReviewOrder,
@@ -14,8 +13,9 @@ type ReviewOrderModalProps = {
   open: boolean
   draftId: string | null
   onClose: () => void
-  onAddMore: () => void
+  onAddMore: (orderType: string | null) => void
   onPlaced?: (review: ReviewOrderPayload) => void
+  onLoaded?: (review: ReviewOrderPayload) => void
 }
 
 export function ReviewOrderModal({
@@ -24,6 +24,7 @@ export function ReviewOrderModal({
   onClose,
   onAddMore,
   onPlaced,
+  onLoaded,
 }: ReviewOrderModalProps) {
   const [review, setReview] = useState<ReviewOrderPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +43,10 @@ export function ReviewOrderModal({
     async function load() {
       try {
         const data = await fetchReviewOrder(draftId!)
-        if (!cancelled) setReview(data)
+        if (!cancelled) {
+          setReview(data)
+          onLoaded?.(data)
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load review')
@@ -258,13 +262,10 @@ export function ReviewOrderModal({
             type="button"
             className="review-order-modal__btn"
             disabled={busy || Boolean(placedMessage)}
-            onClick={() => {
-              void refresh(() => addReviewItem(draftId)).then(() => onAddMore())
-            }}
+            onClick={() => onAddMore(review?.orderType ?? null)}
           >
             Add More
-          </button>
-          <button
+          </button>          <button
             type="button"
             className="review-order-modal__btn"
             disabled={busy || Boolean(placedMessage) || (review?.items.length ?? 0) === 0}

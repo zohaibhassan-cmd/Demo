@@ -30,7 +30,7 @@ export type PlaceOrderDraft = {
   nickname: string
   fundingAvailableBefore: number
   createdAt: string
-  step: 'start' | 'selection' | 'review' | 'placed'
+  step: 'start' | 'selection' | 'form' | 'review' | 'placed'
   orderType: OrderType | null
   bulkUploadFileName: string | null
   items: DraftLineItem[]
@@ -291,6 +291,14 @@ placeOrderRouter.get('/suspend/options', (_req, res) => {
   })
 })
 
+placeOrderRouter.get('/deactivate/options', (_req, res) => {
+  res.json({
+    ruiNickname: filterOptions.ru1,
+    bureauDesignator: filterOptions.bureau.filter((b) => b !== 'All'),
+    unitCost: 50555,
+  })
+})
+
 placeOrderRouter.get('/zip/:zip', (req, res) => {
   const match = zipLookup[req.params.zip]
   if (!match) {
@@ -392,7 +400,8 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
     orderType === 'New Order' ||
     orderType === 'International Pass' ||
     orderType === 'Replace-Upgrade' ||
-    orderType === 'Suspend'
+    orderType === 'Suspend' ||
+    orderType === 'Deactivate'
   ) {
     draft.items = []
     draft.step = 'form'
@@ -414,7 +423,9 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
             ? `Order type "${orderType}" selected. Continue to Replace-Upgrade form.`
             : orderType === 'Suspend'
               ? `Order type "${orderType}" selected. Continue to Suspend form.`
-              : `Order type "${orderType}" selected. Review your order.`,
+              : orderType === 'Deactivate'
+                ? `Order type "${orderType}" selected. Continue to Deactivate form.`
+                : `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
@@ -1033,6 +1044,113 @@ placeOrderRouter.post('/:draftId/suspend-item', (req, res) => {
       suspendStartDate: body.suspendStartDate,
       suspendEndDate: body.suspendEndDate,
       useEmailForNotifications: Boolean(body.useEmailForNotifications),
+    },
+  })
+})
+
+placeOrderRouter.get('/:draftId/deactivate-context', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  const unitCost = 50555
+  const spent = orderTotal(draft.items)
+  const remaining = Math.max(0, draft.fundingAvailableBefore - spent)
+  res.json({
+    draftId: draft.id,
+    clin: draft.clin,
+    bureau: draft.bureau,
+    nickname: draft.nickname,
+    orderType: 'Deactivate',
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    unitCost,
+    unitCostFormatted: formatCurrency(unitCost),
+    costRemainingForClin: remaining,
+    costRemainingForClinFormatted: formatCurrency(remaining),
+    cartCount: draft.items.length,
+  })
+})
+
+placeOrderRouter.post('/:draftId/deactivate-item', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const body = req.body ?? {}
+  const required = [
+    'mobileNumber',
+    'firstName',
+    'lastName',
+    'email',
+    'ruiNickname1',
+    'bureauDesignator',
+    'deactivateDate',
+  ] as const
+
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string' || !String(body[field]).trim()) {
+      res.status(400).json({ error: `${field} is required` })
+      return
+    }
+  }
+
+  if (!String(body.email).includes('@')) {
+    res.status(400).json({ error: 'Valid email is required' })
+    return
+  }
+
+  const deactivateDate = String(body.deactivateDate)
+  const year = Number(deactivateDate.slice(0, 4))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(deactivateDate) || Number.isNaN(year)) {
+    res.status(400).json({ error: 'Valid Deactivate Date is required' })
+    return
+  }
+
+  const currentYear = new Date().getFullYear()
+  if (year !== currentYear) {
+    res.status(400).json({
+      error: `Deactivate Date must be within the current year (${currentYear})`,
+    })
+    return
+  }
+
+  const unitCost = typeof body.unitCost === 'number' ? body.unitCost : 50555
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: 'Deactivate',
+    ru1: String(body.ruiNickname1).split(' - ')[0] || String(body.ruiNickname1),
+    ru2:
+      typeof body.ruiNickname2 === 'string' && body.ruiNickname2
+        ? String(body.ruiNickname2).includes(' - ')
+          ? String(body.ruiNickname2).split(' - ').pop() || 'ANRS'
+          : body.ruiNickname2
+        : 'ANRS',
+    designatorCode: String(body.bureauDesignator).slice(0, 3).toUpperCase(),
+    ccat1: 'Wireless',
+    ccat2: 'Deactivate',
+    unitCost,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+  draft.orderType = 'Deactivate'
+
+  const spent = orderTotal(draft.items)
+  res.status(201).json({
+    item,
+    review: reviewPayload(draft),
+    cartCount: draft.items.length,
+    costRemainingForClinFormatted: formatCurrency(
+      Math.max(0, draft.fundingAvailableBefore - spent),
+    ),
+    message: 'Deactivate item added to cart',
+    deactivateMeta: {
+      mobileNumber: body.mobileNumber,
+      deactivateDate: body.deactivateDate,
     },
   })
 })
