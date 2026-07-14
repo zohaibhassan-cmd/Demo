@@ -9,15 +9,16 @@ import {
 } from '../api/placeOrderApi'
 import './PlaceOrderModal.css'
 
-type Step = 'start' | 'selection' | 'selected'
+type Step = 'start' | 'selection'
 
 type PlaceOrderModalProps = {
   open: boolean
   onClose: () => void
   onStarted?: (draft: PlaceOrderDraft) => void
+  onOpenReview?: (draftId: string) => void
 }
 
-export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalProps) {
+export function PlaceOrderModal({ open, onClose, onStarted, onOpenReview }: PlaceOrderModalProps) {
   const [step, setStep] = useState<Step>('start')
   const [bureauOptions, setBureauOptions] = useState<string[]>([])
   const [clinOptions, setClinOptions] = useState<string[]>([])
@@ -129,8 +130,8 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
     try {
       const result = await selectOrderType(draft.id, value)
       setDraft(result.draft)
-      setStep('selected')
-      setStatusMessage(result.message)
+      onOpenReview?.(result.draft.id)
+      onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to select order type')
     } finally {
@@ -147,6 +148,8 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
       const result = await submitBulkUpload(draft.id, file.name)
       setDraft(result.draft)
       setStatusMessage(result.message)
+      onOpenReview?.(result.draft.id)
+      onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk upload failed')
     } finally {
@@ -247,7 +250,7 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
           </>
         ) : null}
 
-        {step === 'selection' || step === 'selected' ? (
+        {step === 'selection' ? (
           <>
             <div className="place-order-modal__selection">
               <label className="place-order-modal__row place-order-modal__row--selection" htmlFor="po-type">
@@ -255,7 +258,7 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
                 <select
                   id="po-type"
                   value={orderType}
-                  disabled={submitting || step === 'selected'}
+                  disabled={submitting}
                   onChange={(e) => void handleOrderTypeChange(e.target.value)}
                 >
                   <option value="">Dropdown</option>
@@ -288,31 +291,10 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
               </div>
             </div>
 
-            {draft?.bulkUploadFileName ? (
-              <p className="place-order-modal__success-note">
-                Uploaded: {draft.bulkUploadFileName}
-              </p>
-            ) : null}
-
             {statusMessage ? (
               <p className="place-order-modal__success-note">{statusMessage}</p>
             ) : null}
             {error ? <p className="place-order-modal__error">{error}</p> : null}
-
-            {step === 'selected' ? (
-              <div className="place-order-modal__actions">
-                <button type="button" className="place-order-modal__cancel" onClick={handleCancel}>
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="place-order-modal__next"
-                  onClick={handleCancel}
-                >
-                  Continue later
-                </button>
-              </div>
-            ) : null}
           </>
         ) : null}
       </div>

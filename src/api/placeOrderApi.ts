@@ -11,6 +11,17 @@ export type PlaceOrderFunding = {
   totalFundingAvailableBeforeFormatted: string
 }
 
+export type DraftLineItem = {
+  id: string
+  type: string
+  ru1: string
+  ru2: string
+  designatorCode: string
+  ccat1: string
+  ccat2: string
+  unitCost: number
+}
+
 export type PlaceOrderDraft = {
   id: string
   bureau: string
@@ -18,9 +29,31 @@ export type PlaceOrderDraft = {
   nickname: string
   fundingAvailableBefore: number
   createdAt: string
-  step: 'start' | 'selection' | 'form'
+  step: 'start' | 'selection' | 'review' | 'placed'
   orderType: string | null
   bulkUploadFileName: string | null
+  items: DraftLineItem[]
+  emailSent: boolean
+  orderNumber: string | null
+}
+
+export type ReviewOrderPayload = {
+  draftId: string
+  clin: string
+  nickname: string
+  orderType: string | null
+  fundingAvailableBefore: number
+  fundingAvailableBeforeFormatted: string
+  fundingAvailableAfter: number
+  fundingAvailableAfterFormatted: string
+  orderTotal: number
+  orderTotalFormatted: string
+  cartCount: number
+  emailMessage: string
+  items: DraftLineItem[]
+  step: string
+  orderNumber: string | null
+  message?: string
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -32,11 +65,11 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>
 }
 
-async function postJson<T>(url: string, body: unknown): Promise<T> {
+async function sendJson<T>(url: string, method: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   })
   const data = (await response.json()) as T & { error?: string }
   if (!response.ok) {
@@ -61,24 +94,57 @@ export async function startPlaceOrder(input: {
   clin: string
   nickname: string
 }) {
-  return postJson<{
+  return sendJson<{
     draft: PlaceOrderDraft
     fundingAvailableBeforeFormatted: string
     message: string
-  }>('/api/place-order/start', input)
+  }>('/api/place-order/start', 'POST', input)
 }
 
 export async function selectOrderType(draftId: string, orderType: string) {
-  return postJson<{
+  return sendJson<{
     draft: PlaceOrderDraft
+    review: ReviewOrderPayload
     fundingAvailableBeforeFormatted: string
     message: string
-  }>(`/api/place-order/${draftId}/order-type`, { orderType })
+  }>(`/api/place-order/${draftId}/order-type`, 'POST', { orderType })
 }
 
 export async function submitBulkUpload(draftId: string, fileName: string) {
-  return postJson<{
+  return sendJson<{
     draft: PlaceOrderDraft
+    review: ReviewOrderPayload
     message: string
-  }>(`/api/place-order/${draftId}/bulk-upload`, { fileName })
+  }>(`/api/place-order/${draftId}/bulk-upload`, 'POST', { fileName })
+}
+
+export async function fetchReviewOrder(draftId: string) {
+  return getJson<ReviewOrderPayload>(`/api/place-order/${draftId}/review`)
+}
+
+export async function deleteReviewItem(draftId: string, itemId: string) {
+  return sendJson<ReviewOrderPayload>(
+    `/api/place-order/${draftId}/items/${itemId}`,
+    'DELETE',
+  )
+}
+
+export async function updateReviewItem(
+  draftId: string,
+  itemId: string,
+  patch: Partial<DraftLineItem>,
+) {
+  return sendJson<ReviewOrderPayload>(
+    `/api/place-order/${draftId}/items/${itemId}`,
+    'PATCH',
+    patch,
+  )
+}
+
+export async function addReviewItem(draftId: string, item?: Partial<DraftLineItem>) {
+  return sendJson<ReviewOrderPayload>(`/api/place-order/${draftId}/items`, 'POST', item ?? {})
+}
+
+export async function placeReviewOrder(draftId: string) {
+  return sendJson<ReviewOrderPayload>(`/api/place-order/${draftId}/place`, 'POST', {})
 }

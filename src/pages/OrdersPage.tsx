@@ -5,6 +5,7 @@ import { FilterBar } from '../components/FilterBar'
 import { FundingCards } from '../components/FundingCards'
 import { OrdersTable } from '../components/OrdersTable'
 import { PlaceOrderModal } from '../components/PlaceOrderModal'
+import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { SimpleDialog } from '../components/SimpleDialog'
 import {
   exportOrdersUrl,
@@ -53,6 +54,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
+  const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
   const [infoDialog, setInfoDialog] = useState<{ title: string; message: string } | null>(null)
 
   useEffect(() => {
@@ -199,7 +201,26 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
 
       <Footer />
 
-      <PlaceOrderModal open={placeOrderOpen} onClose={() => setPlaceOrderOpen(false)} />
+      <PlaceOrderModal
+        open={placeOrderOpen}
+        onClose={() => setPlaceOrderOpen(false)}
+        onOpenReview={(draftId) => setReviewDraftId(draftId)}
+      />
+      <ReviewOrderModal
+        open={Boolean(reviewDraftId)}
+        draftId={reviewDraftId}
+        onClose={() => setReviewDraftId(null)}
+        onAddMore={() => {
+          // Stay on review; item already added via API
+        }}
+        onPlaced={(review) => {
+          setCartCount(0)
+          setInfoDialog({
+            title: 'Order Placed',
+            message: review.message ?? `Order ${review.orderNumber} placed successfully.`,
+          })
+        }}
+      />
       <SimpleDialog
         open={Boolean(infoDialog)}
         title={infoDialog?.title ?? ''}

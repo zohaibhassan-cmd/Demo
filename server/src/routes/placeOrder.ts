@@ -12,6 +12,17 @@ export const orderTypes = [
 
 export type OrderType = (typeof orderTypes)[number]
 
+export type DraftLineItem = {
+  id: string
+  type: string
+  ru1: string
+  ru2: string
+  designatorCode: string
+  ccat1: string
+  ccat2: string
+  unitCost: number
+}
+
 export type PlaceOrderDraft = {
   id: string
   bureau: string
@@ -19,12 +30,111 @@ export type PlaceOrderDraft = {
   nickname: string
   fundingAvailableBefore: number
   createdAt: string
-  step: 'start' | 'selection' | 'form'
+  step: 'start' | 'selection' | 'review' | 'placed'
   orderType: OrderType | null
   bulkUploadFileName: string | null
+  items: DraftLineItem[]
+  emailSent: boolean
+  orderNumber: string | null
 }
 
 export const placeOrderDrafts: PlaceOrderDraft[] = []
+
+let itemSeq = 1
+
+function nextItemId() {
+  const id = `LI-${String(itemSeq).padStart(3, '0')}`
+  itemSeq += 1
+  return id
+}
+
+function seedItems(orderType: OrderType): DraftLineItem[] {
+  const base: DraftLineItem[] = [
+    {
+      id: nextItemId(),
+      type: orderType === 'Replace-Upgrade' ? 'Upgrade' : 'New',
+      ru1: 'Alabama',
+      ru2: 'COLE',
+      designatorCode: 'XXX',
+      ccat1: 'Phone',
+      ccat2: 'Samsung',
+      unitCost: 280,
+    },
+    {
+      id: nextItemId(),
+      type: 'New',
+      ru1: 'Iowa',
+      ru2: 'ANRS',
+      designatorCode: 'XXX',
+      ccat1: 'Phone',
+      ccat2: 'Apple',
+      unitCost: 300,
+    },
+    {
+      id: nextItemId(),
+      type: 'New',
+      ru1: 'North Dakota',
+      ru2: 'AFAC',
+      designatorCode: 'XXX',
+      ccat1: 'Phone',
+      ccat2: 'Pass',
+      unitCost: 120,
+    },
+    {
+      id: nextItemId(),
+      type: 'Upgrade',
+      ru1: 'Wyoming',
+      ru2: 'ANRS',
+      designatorCode: 'XXX',
+      ccat1: 'Tablet',
+      ccat2: 'Samsung',
+      unitCost: 416,
+    },
+    {
+      id: nextItemId(),
+      type: orderType === 'Deactivate' ? 'Deactivate' : 'Upgrade',
+      ru1: 'Wyoming',
+      ru2: 'COLE',
+      designatorCode: 'XXX',
+      ccat1: 'Wireless',
+      ccat2: 'Router/WAP SIM',
+      unitCost: 100,
+    },
+  ]
+  return base
+}
+
+function orderTotal(items: DraftLineItem[]) {
+  return items.reduce((sum, item) => sum + item.unitCost, 0)
+}
+
+function reviewPayload(draft: PlaceOrderDraft) {
+  const total = orderTotal(draft.items)
+  const after = draft.fundingAvailableBefore - total
+  return {
+    draftId: draft.id,
+    clin: draft.clin,
+    nickname: draft.nickname,
+    orderType: draft.orderType,
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    fundingAvailableAfter: after,
+    fundingAvailableAfterFormatted: formatCurrency(after),
+    orderTotal: total,
+    orderTotalFormatted: formatCurrency(total),
+    cartCount: draft.items.length,
+    emailMessage: draft.emailSent
+      ? 'A copy of your order has been sent to your email.'
+      : 'A copy of your order will be sent to your email on Place Order.',
+    items: draft.items,
+    step: draft.step,
+    orderNumber: draft.orderNumber,
+  }
+}
+
+function findDraft(draftId: string) {
+  return placeOrderDrafts.find((row) => row.id === draftId)
+}
 
 export const placeOrderRouter = Router()
 
@@ -93,6 +203,9 @@ placeOrderRouter.post('/start', (req, res) => {
     step: 'selection',
     orderType: null,
     bulkUploadFileName: null,
+    items: [],
+    emailSent: false,
+    orderNumber: null,
   }
 
   placeOrderDrafts.push(draft)
@@ -105,7 +218,7 @@ placeOrderRouter.post('/start', (req, res) => {
 })
 
 placeOrderRouter.post('/:draftId/order-type', (req, res) => {
-  const draft = placeOrderDrafts.find((row) => row.id === req.params.draftId)
+  const draft = findDraft(req.params.draftId)
   if (!draft) {
     res.status(404).json({ error: 'Draft not found' })
     return
@@ -120,17 +233,19 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
   }
 
   draft.orderType = orderType
-  draft.step = 'form'
+  draft.items = seedItems(orderType)
+  draft.step = 'review'
 
   res.json({
     draft,
+    review: reviewPayload(draft),
     fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
-    message: `Order type "${orderType}" selected. Continue to order form.`,
+    message: `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
 placeOrderRouter.post('/:draftId/bulk-upload', (req, res) => {
-  const draft = placeOrderDrafts.find((row) => row.id === req.params.draftId)
+  const draft = findDraft(req.params.draftId)
   if (!draft) {
     res.status(404).json({ error: 'Draft not found' })
     return
@@ -149,9 +264,113 @@ placeOrderRouter.post('/:draftId/bulk-upload', (req, res) => {
   }
 
   draft.bulkUploadFileName = fileName.trim()
+  if (draft.items.length === 0) {
+    draft.items = seedItems(draft.orderType ?? 'New Order')
+  }
+  draft.step = 'review'
 
   res.json({
     draft,
+    review: reviewPayload(draft),
     message: `Bulk upload received: ${draft.bulkUploadFileName}`,
+  })
+})
+
+placeOrderRouter.get('/:draftId/review', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  res.json(reviewPayload(draft))
+})
+
+placeOrderRouter.delete('/:draftId/items/:itemId', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const before = draft.items.length
+  draft.items = draft.items.filter((item) => item.id !== req.params.itemId)
+  if (draft.items.length === before) {
+    res.status(404).json({ error: 'Item not found' })
+    return
+  }
+
+  res.json(reviewPayload(draft))
+})
+
+placeOrderRouter.patch('/:draftId/items/:itemId', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const item = draft.items.find((row) => row.id === req.params.itemId)
+  if (!item) {
+    res.status(404).json({ error: 'Item not found' })
+    return
+  }
+
+  const fields = ['type', 'ru1', 'ru2', 'designatorCode', 'ccat1', 'ccat2'] as const
+  for (const field of fields) {
+    const value = req.body?.[field]
+    if (typeof value === 'string' && value.trim()) {
+      item[field] = value.trim()
+    }
+  }
+  if (typeof req.body?.unitCost === 'number' && req.body.unitCost >= 0) {
+    item.unitCost = req.body.unitCost
+  }
+
+  res.json(reviewPayload(draft))
+})
+
+placeOrderRouter.post('/:draftId/items', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: typeof req.body?.type === 'string' ? req.body.type : 'New',
+    ru1: typeof req.body?.ru1 === 'string' ? req.body.ru1 : 'Iowa',
+    ru2: typeof req.body?.ru2 === 'string' ? req.body.ru2 : 'ANRS',
+    designatorCode:
+      typeof req.body?.designatorCode === 'string' ? req.body.designatorCode : 'XXX',
+    ccat1: typeof req.body?.ccat1 === 'string' ? req.body.ccat1 : 'Phone',
+    ccat2: typeof req.body?.ccat2 === 'string' ? req.body.ccat2 : 'Samsung',
+    unitCost: typeof req.body?.unitCost === 'number' ? req.body.unitCost : 250,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+
+  res.status(201).json(reviewPayload(draft))
+})
+
+placeOrderRouter.post('/:draftId/place', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  if (draft.items.length === 0) {
+    res.status(400).json({ error: 'Add at least one line item before placing the order' })
+    return
+  }
+
+  draft.emailSent = true
+  draft.step = 'placed'
+  draft.orderNumber = `${draft.bureau}${100 + placeOrderDrafts.indexOf(draft)}`
+
+  res.json({
+    ...reviewPayload(draft),
+    message: `Order ${draft.orderNumber} placed. Confirmation emailed to user and CO.`,
   })
 })

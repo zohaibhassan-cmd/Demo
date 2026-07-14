@@ -1,0 +1,236 @@
+.review-order-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(45, 52, 64, 0.72);
+}
+
+.review-order-modal {
+  position: relative;
+  width: min(860px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 0 1.25rem 1.25rem;
+  border: 1px solid #c5cbd6;
+  border-radius: 4px;
+  background: #eef1f5;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.review-order-modal__chrome {
+  margin: 0 -1.25rem 0.85rem;
+  padding: 0.45rem 1rem;
+  background: #4a5564;
+  color: #d7dbe2;
+  font-size: 0.82rem;
+}
+
+.review-order-modal__close {
+  position: absolute;
+  top: 2.35rem;
+  right: 0.85rem;
+  border: none;
+  background: transparent;
+  color: #333;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.review-order-modal__title {
+  margin: 0.35rem 0 0.9rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.review-order-modal__funding,
+.review-order-modal__summary,
+.review-order-modal__after {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #9aa6b5;
+  border-radius: 2px;
+  background: #fff;
+  color: #0b2a5b;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.review-order-modal__cart {
+  position: relative;
+  display: inline-flex;
+  color: #3d4654;
+}
+
+.review-order-modal__cart-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.45rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #2f6fb5;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+}
+
+.review-order-modal__table-wrap {
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+  border: 1px solid #c5cbd6;
+  background: #fff;
+}
+
+.review-order-modal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.review-order-modal th {
+  padding: 0.5rem 0.55rem;
+  background: #0b2a5b;
+  color: #fff;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.review-order-modal td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid #e4e8ef;
+  white-space: nowrap;
+}
+
+.review-order-modal tbody tr:nth-child(even) {
+  background: #f3f5f8;
+}
+
+.review-order-modal__actions-cell {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.review-order-modal__actions-cell button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid #c5cbd6;
+  border-radius: 3px;
+  background: #fff;
+  color: #0b2a5b;
+  cursor: pointer;
+}
+
+.review-order-modal__actions-cell button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.review-order-modal td input {
+  width: 100%;
+  min-width: 4.5rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid #b7bec9;
+  border-radius: 3px;
+  font: inherit;
+}
+
+.review-order-modal__empty {
+  text-align: center;
+  color: #5a6472;
+}
+
+.review-order-modal__summary {
+  align-items: flex-start;
+}
+
+.review-order-modal__summary p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5a6472;
+  text-align: right;
+}
+
+.review-order-modal__summary > div {
+  text-align: right;
+}
+
+.review-order-modal__error {
+  margin: 0 0 0.65rem;
+  color: #842029;
+  font-size: 0.85rem;
+}
+
+.review-order-modal__placed {
+  margin: 0 0 0.65rem;
+  color: #0b2a5b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.review-order-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.review-order-modal__cancel {
+  border: none;
+  background: transparent;
+  color: #5b8fc7;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-order-modal__btn {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #0b2a5b;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-order-modal__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .review-order-modal__funding,
+  .review-order-modal__summary,
+  .review-order-modal__after {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .review-order-modal__summary > div,
+  .review-order-modal__summary p {
+    text-align: left;
+  }
+}
