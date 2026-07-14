@@ -54,6 +54,38 @@ export type ReviewOrderPayload = {
   step: string
   orderNumber: string | null
   message?: string
+  summary?: OrderSummaryPayload
+}
+
+export type OrderSummaryCategory = {
+  label: string
+  count: number
+  amount: number
+  amountFormatted: string
+}
+
+export type OrderSummaryLocation = {
+  location: string
+  subtotal: number
+  subtotalFormatted: string
+  phones: OrderSummaryCategory
+  tablets: OrderSummaryCategory
+  wireless: OrderSummaryCategory
+}
+
+export type OrderSummaryPayload = {
+  clin: string
+  orderNumber: string
+  totalItems: number
+  orderTotal: number
+  orderTotalFormatted: string
+  fundingAvailableBefore: number
+  fundingAvailableBeforeFormatted: string
+  fundingAvailableAfter: number
+  fundingAvailableAfterFormatted: string
+  emailMessage: string
+  categories: OrderSummaryCategory[]
+  locations: OrderSummaryLocation[]
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -147,4 +179,8 @@ export async function addReviewItem(draftId: string, item?: Partial<DraftLineIte
 
 export async function placeReviewOrder(draftId: string) {
   return sendJson<ReviewOrderPayload>(`/api/place-order/${draftId}/place`, 'POST', {})
+}
+
+export async function fetchOrderSummary(draftId: string) {
+  return getJson<OrderSummaryPayload>(`/api/place-order/${draftId}/summary`)
 }

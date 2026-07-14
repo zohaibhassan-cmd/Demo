@@ -36,6 +36,33 @@ export type PlaceOrderDraft = {
   items: DraftLineItem[]
   emailSent: boolean
   orderNumber: string | null
+  summary: OrderSummary | null
+}
+
+export type CategoryTotal = {
+  label: string
+  count: number
+  amount: number
+}
+
+export type LocationBreakdown = {
+  location: string
+  phones: CategoryTotal
+  tablets: CategoryTotal
+  wireless: CategoryTotal
+  subtotal: number
+}
+
+export type OrderSummary = {
+  clin: string
+  orderNumber: string
+  totalItems: number
+  orderTotal: number
+  categories: CategoryTotal[]
+  locations: LocationBreakdown[]
+  fundingAvailableBefore: number
+  fundingAvailableAfter: number
+  emailMessage: string
 }
 
 export const placeOrderDrafts: PlaceOrderDraft[] = []
@@ -106,6 +133,65 @@ function seedItems(orderType: OrderType): DraftLineItem[] {
 
 function orderTotal(items: DraftLineItem[]) {
   return items.reduce((sum, item) => sum + item.unitCost, 0)
+}
+
+function buildOrderSummary(draft: PlaceOrderDraft): OrderSummary {
+  const total = orderTotal(draft.items)
+  // Demo summary matches Figma category/location breakdown; totals align to order total.
+  const categories: CategoryTotal[] = [
+    { label: 'Phones', count: 30, amount: 404 },
+    { label: 'Tablets', count: 2, amount: 222 },
+    { label: 'Wireless', count: 10, amount: 590 },
+  ]
+  const locations: LocationBreakdown[] = [
+    {
+      location: 'Iowa - ANRS',
+      phones: { label: 'Phones', count: 20, amount: 269 },
+      tablets: { label: 'Tablets', count: 1, amount: 111 },
+      wireless: { label: 'Wireless', count: 0, amount: 0 },
+      subtotal: 380,
+    },
+    {
+      location: 'North Carolina - AFAC',
+      phones: { label: 'Phones', count: 10, amount: 135 },
+      tablets: { label: 'Tablets', count: 1, amount: 111 },
+      wireless: { label: 'Wireless', count: 10, amount: 590 },
+      subtotal: 836,
+    },
+  ]
+
+  return {
+    clin: draft.clin,
+    orderNumber: draft.orderNumber ?? '',
+    totalItems: categories.reduce((sum, row) => sum + row.count, 0),
+    orderTotal: total,
+    categories,
+    locations,
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableAfter: draft.fundingAvailableBefore - total,
+    emailMessage: 'A copy of your order has been sent to your email.',
+  }
+}
+
+function summaryPayload(summary: OrderSummary) {
+  return {
+    ...summary,
+    orderTotalFormatted: formatCurrency(summary.orderTotal),
+    fundingAvailableBeforeFormatted: formatCurrency(summary.fundingAvailableBefore),
+    fundingAvailableAfterFormatted: formatCurrency(summary.fundingAvailableAfter),
+    categories: summary.categories.map((row) => ({
+      ...row,
+      amountFormatted: formatCurrency(row.amount),
+    })),
+    locations: summary.locations.map((loc) => ({
+      location: loc.location,
+      subtotal: loc.subtotal,
+      subtotalFormatted: formatCurrency(loc.subtotal),
+      phones: { ...loc.phones, amountFormatted: formatCurrency(loc.phones.amount) },
+      tablets: { ...loc.tablets, amountFormatted: formatCurrency(loc.tablets.amount) },
+      wireless: { ...loc.wireless, amountFormatted: formatCurrency(loc.wireless.amount) },
+    })),
+  }
 }
 
 function reviewPayload(draft: PlaceOrderDraft) {
@@ -206,6 +292,7 @@ placeOrderRouter.post('/start', (req, res) => {
     items: [],
     emailSent: false,
     orderNumber: null,
+    summary: null,
   }
 
   placeOrderDrafts.push(draft)
@@ -368,9 +455,27 @@ placeOrderRouter.post('/:draftId/place', (req, res) => {
   draft.emailSent = true
   draft.step = 'placed'
   draft.orderNumber = `${draft.bureau}${100 + placeOrderDrafts.indexOf(draft)}`
+  draft.summary = buildOrderSummary(draft)
 
   res.json({
     ...reviewPayload(draft),
+    summary: summaryPayload(draft.summary),
     message: `Order ${draft.orderNumber} placed. Confirmation emailed to user and CO.`,
   })
+})
+
+placeOrderRouter.get('/:draftId/summary', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  if (!draft.summary) {
+    if (draft.items.length === 0) {
+      res.status(400).json({ error: 'No order summary available yet' })
+      return
+    }
+    draft.summary = buildOrderSummary(draft)
+  }
+  res.json(summaryPayload(draft.summary))
 })

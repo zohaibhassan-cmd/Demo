@@ -6,7 +6,9 @@ import { FundingCards } from '../components/FundingCards'
 import { OrdersTable } from '../components/OrdersTable'
 import { PlaceOrderModal } from '../components/PlaceOrderModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
+import { OrderSummaryModal } from '../components/OrderSummaryModal'
 import { SimpleDialog } from '../components/SimpleDialog'
+import type { OrderSummaryPayload } from '../api/placeOrderApi'
 import {
   exportOrdersUrl,
   fetchCartCount,
@@ -55,6 +57,8 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [error, setError] = useState<string | null>(null)
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
+  const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
+  const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
   const [infoDialog, setInfoDialog] = useState<{ title: string; message: string } | null>(null)
 
   useEffect(() => {
@@ -215,10 +219,18 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         }}
         onPlaced={(review) => {
           setCartCount(0)
-          setInfoDialog({
-            title: 'Order Placed',
-            message: review.message ?? `Order ${review.orderNumber} placed successfully.`,
-          })
+          setReviewDraftId(null)
+          setOrderSummary(review.summary ?? null)
+          setSummaryDraftId(review.draftId)
+        }}
+      />
+      <OrderSummaryModal
+        open={Boolean(summaryDraftId)}
+        draftId={summaryDraftId}
+        initialSummary={orderSummary}
+        onClose={() => {
+          setSummaryDraftId(null)
+          setOrderSummary(null)
         }}
       />
       <SimpleDialog
