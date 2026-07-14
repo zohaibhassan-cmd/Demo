@@ -134,8 +134,50 @@
 }
 
 .place-order-modal__success-note {
+  margin: 0.75rem 0 0;
   color: #5a6472;
   font-size: 0.9rem;
+}
+
+.place-order-modal__selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.25rem;
+}
+
+.place-order-modal__row--selection {
+  flex: 1 1 260px;
+  grid-template-columns: 6.5rem minmax(10rem, 1fr);
+}
+
+.place-order-modal__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+  color: #444;
+}
+
+.place-order-modal__bulk-link {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #1a4f9c;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.place-order-modal__bulk-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.place-order-modal__file {
+  display: none;
 }
 
 @media (max-width: 560px) {

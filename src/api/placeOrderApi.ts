@@ -1,6 +1,7 @@
 export type PlaceOrderOptions = {
   bureau: string[]
   clin: string[]
+  orderTypes: string[]
 }
 
 export type PlaceOrderFunding = {
@@ -17,7 +18,9 @@ export type PlaceOrderDraft = {
   nickname: string
   fundingAvailableBefore: number
   createdAt: string
-  step: 'start' | 'selection'
+  step: 'start' | 'selection' | 'form'
+  orderType: string | null
+  bulkUploadFileName: string | null
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -27,6 +30,19 @@ async function getJson<T>(url: string): Promise<T> {
     throw new Error(body || `Request failed: ${response.status}`)
   }
   return response.json() as Promise<T>
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = (await response.json()) as T & { error?: string }
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed: ${response.status}`)
+  }
+  return data
 }
 
 export async function fetchPlaceOrderOptions() {
@@ -45,26 +61,24 @@ export async function startPlaceOrder(input: {
   clin: string
   nickname: string
 }) {
-  const response = await fetch('/api/place-order/start', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-
-  const data = (await response.json()) as {
-    draft?: PlaceOrderDraft
-    fundingAvailableBeforeFormatted?: string
-    message?: string
-    error?: string
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to start place order')
-  }
-
-  return data as {
+  return postJson<{
     draft: PlaceOrderDraft
     fundingAvailableBeforeFormatted: string
     message: string
-  }
+  }>('/api/place-order/start', input)
+}
+
+export async function selectOrderType(draftId: string, orderType: string) {
+  return postJson<{
+    draft: PlaceOrderDraft
+    fundingAvailableBeforeFormatted: string
+    message: string
+  }>(`/api/place-order/${draftId}/order-type`, { orderType })
+}
+
+export async function submitBulkUpload(draftId: string, fileName: string) {
+  return postJson<{
+    draft: PlaceOrderDraft
+    message: string
+  }>(`/api/place-order/${draftId}/bulk-upload`, { fileName })
 }

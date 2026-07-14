@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   fetchPlaceOrderFunding,
   fetchPlaceOrderOptions,
+  selectOrderType,
   startPlaceOrder,
+  submitBulkUpload,
   type PlaceOrderDraft,
 } from '../api/placeOrderApi'
 import './PlaceOrderModal.css'
+
+type Step = 'start' | 'selection' | 'selected'
 
 type PlaceOrderModalProps = {
   open: boolean
@@ -14,25 +18,33 @@ type PlaceOrderModalProps = {
 }
 
 export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalProps) {
+  const [step, setStep] = useState<Step>('start')
   const [bureauOptions, setBureauOptions] = useState<string[]>([])
   const [clinOptions, setClinOptions] = useState<string[]>([])
+  const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([])
   const [bureau, setBureau] = useState('')
   const [clin, setClin] = useState('')
   const [nickname, setNickname] = useState('')
+  const [orderType, setOrderType] = useState('')
   const [fundingLabel, setFundingLabel] = useState('$1,358,000')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [successDraft, setSuccessDraft] = useState<PlaceOrderDraft | null>(null)
+  const [draft, setDraft] = useState<PlaceOrderDraft | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
 
     let cancelled = false
+    setStep('start')
     setError(null)
-    setSuccessDraft(null)
+    setStatusMessage(null)
+    setDraft(null)
     setBureau('')
     setClin('')
     setNickname('')
+    setOrderType('')
 
     async function load() {
       try {
@@ -40,6 +52,7 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
         if (cancelled) return
         setBureauOptions(options.bureau)
         setClinOptions(options.clin)
+        setOrderTypeOptions(options.orderTypes ?? [])
         const funding = await fetchPlaceOrderFunding('', '')
         if (!cancelled) setFundingLabel(funding.totalFundingAvailableBeforeFormatted)
       } catch (err) {
@@ -56,7 +69,7 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
   }, [open])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || step !== 'start') return
     let cancelled = false
 
     async function loadFunding() {
@@ -72,7 +85,7 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
     return () => {
       cancelled = true
     }
-  }, [open, bureau, clin])
+  }, [open, step, bureau, clin])
 
   if (!open) return null
 
@@ -95,12 +108,50 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
     setSubmitting(true)
     try {
       const result = await startPlaceOrder({ bureau, clin, nickname })
-      setSuccessDraft(result.draft)
+      setDraft(result.draft)
+      setFundingLabel(result.fundingAvailableBeforeFormatted)
+      setStep('selection')
       onStarted?.(result.draft)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to continue')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleOrderTypeChange(value: string) {
+    setOrderType(value)
+    setError(null)
+    setStatusMessage(null)
+    if (!value || !draft) return
+
+    setSubmitting(true)
+    try {
+      const result = await selectOrderType(draft.id, value)
+      setDraft(result.draft)
+      setStep('selected')
+      setStatusMessage(result.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to select order type')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleBulkFile(file: File | undefined) {
+    if (!file || !draft) return
+    setError(null)
+    setStatusMessage(null)
+    setSubmitting(true)
+    try {
+      const result = await submitBulkUpload(draft.id, file.name)
+      setDraft(result.draft)
+      setStatusMessage(result.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk upload failed')
+    } finally {
+      setSubmitting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -130,31 +181,13 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
           Place Order
         </h2>
 
-        {successDraft ? (
-          <div className="place-order-modal__success">
-            <p>
-              Draft <strong>{successDraft.id}</strong> started for{' '}
-              <strong>{successDraft.nickname}</strong>.
-            </p>
-            <p className="place-order-modal__success-note">
-              Bureau: {successDraft.bureau} · CLIN: {successDraft.clin}
-            </p>
-            <p className="place-order-modal__success-note">
-              Next step in flow: Order Selection (coming next).
-            </p>
-            <div className="place-order-modal__actions">
-              <button type="button" className="place-order-modal__cancel" onClick={handleCancel}>
-                Close
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="place-order-modal__funding">
-              <span>Total Funding Available Before Order:</span>
-              <strong>{fundingLabel}</strong>
-            </div>
+        <div className="place-order-modal__funding">
+          <span>Total Funding Available Before Order:</span>
+          <strong>{fundingLabel}</strong>
+        </div>
 
+        {step === 'start' ? (
+          <>
             <div className="place-order-modal__form">
               <label className="place-order-modal__row" htmlFor="po-bureau">
                 <span>Bureau/Office</span>
@@ -212,7 +245,76 @@ export function PlaceOrderModal({ open, onClose, onStarted }: PlaceOrderModalPro
               </button>
             </div>
           </>
-        )}
+        ) : null}
+
+        {step === 'selection' || step === 'selected' ? (
+          <>
+            <div className="place-order-modal__selection">
+              <label className="place-order-modal__row place-order-modal__row--selection" htmlFor="po-type">
+                <span>Order Type</span>
+                <select
+                  id="po-type"
+                  value={orderType}
+                  disabled={submitting || step === 'selected'}
+                  onChange={(e) => void handleOrderTypeChange(e.target.value)}
+                >
+                  <option value="">Dropdown</option>
+                  {orderTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="place-order-modal__bulk">
+                <span>Have multiple items?</span>
+                <button
+                  type="button"
+                  className="place-order-modal__bulk-link"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!draft || submitting}
+                >
+                  Bulk Upload
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="place-order-modal__file"
+                  aria-label="Bulk upload file"
+                  onChange={(e) => void handleBulkFile(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
+            {draft?.bulkUploadFileName ? (
+              <p className="place-order-modal__success-note">
+                Uploaded: {draft.bulkUploadFileName}
+              </p>
+            ) : null}
+
+            {statusMessage ? (
+              <p className="place-order-modal__success-note">{statusMessage}</p>
+            ) : null}
+            {error ? <p className="place-order-modal__error">{error}</p> : null}
+
+            {step === 'selected' ? (
+              <div className="place-order-modal__actions">
+                <button type="button" className="place-order-modal__cancel" onClick={handleCancel}>
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="place-order-modal__next"
+                  onClick={handleCancel}
+                >
+                  Continue later
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : null}
       </div>
     </div>
   )
