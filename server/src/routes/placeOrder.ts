@@ -232,6 +232,40 @@ placeOrderRouter.get('/options', (_req, res) => {
   })
 })
 
+const zipLookup: Record<string, { city: string; state: string }> = {
+  '20001': { city: 'Washington', state: 'DC' },
+  '22201': { city: 'Arlington', state: 'VA' },
+  '50309': { city: 'Des Moines', state: 'IA' },
+  '27601': { city: 'Raleigh', state: 'NC' },
+  '82001': { city: 'Cheyenne', state: 'WY' },
+}
+
+placeOrderRouter.get('/new-order/options', (_req, res) => {
+  res.json({
+    ru1: filterOptions.ru1,
+    ru2: filterOptions.ru2,
+    bureauDesignator: filterOptions.bureau,
+    ccat1: ['Phone', 'Tablet', 'Wireless'],
+    ccat2: ['Samsung', 'Apple', 'Pass', 'Router/WAP SIM'],
+    ccat3: ['Standard', 'Rugged', 'Secure'],
+    restrictedReporting: ['No (default)', 'Yes'],
+    signatureRequired: ['No (default)', 'Yes'],
+    addressLine1: ['1849 C Street NW', '1201 Oak Ridge Ave', '450 Federal Plaza'],
+    addressLine2: ['Suite 100', 'Building B', 'Floor 3', ''],
+    zips: Object.keys(zipLookup),
+    unitCost: 250,
+  })
+})
+
+placeOrderRouter.get('/zip/:zip', (req, res) => {
+  const match = zipLookup[req.params.zip]
+  if (!match) {
+    res.status(404).json({ error: 'ZIP not found' })
+    return
+  }
+  res.json({ zip: req.params.zip, ...match })
+})
+
 placeOrderRouter.get('/funding-available', (req, res) => {
   const clin = typeof req.query.clin === 'string' ? req.query.clin : ''
   const bureau = typeof req.query.bureau === 'string' ? req.query.bureau : ''
@@ -320,14 +354,22 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
   }
 
   draft.orderType = orderType
-  draft.items = seedItems(orderType)
-  draft.step = 'review'
+  if (orderType === 'New Order') {
+    draft.items = []
+    draft.step = 'form'
+  } else {
+    draft.items = seedItems(orderType)
+    draft.step = 'review'
+  }
 
   res.json({
     draft,
-    review: reviewPayload(draft),
+    review: draft.step === 'review' ? reviewPayload(draft) : null,
     fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
-    message: `Order type "${orderType}" selected. Review your order.`,
+    message:
+      orderType === 'New Order'
+        ? `Order type "${orderType}" selected. Continue to New Order form.`
+        : `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
@@ -478,4 +520,109 @@ placeOrderRouter.get('/:draftId/summary', (req, res) => {
     draft.summary = buildOrderSummary(draft)
   }
   res.json(summaryPayload(draft.summary))
+})
+
+placeOrderRouter.get('/:draftId/new-order-context', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  const unitCost = 250
+  const spent = orderTotal(draft.items)
+  res.json({
+    draftId: draft.id,
+    clin: draft.clin,
+    bureau: draft.bureau,
+    nickname: draft.nickname,
+    orderType: draft.orderType ?? 'New Order',
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    unitCost,
+    unitCostFormatted: formatCurrency(unitCost),
+    costRemainingForClin: draft.fundingAvailableBefore - spent,
+    costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    cartCount: draft.items.length,
+  })
+})
+
+placeOrderRouter.post('/:draftId/new-order-item', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const body = req.body ?? {}
+  const required = [
+    'firstName',
+    'lastName',
+    'email',
+    'ru1',
+    'bureauDesignator',
+    'ccat1',
+    'ccat2',
+    'requestedDeliveryDate',
+    'shipAddress1',
+    'shipZip',
+    'shipCity',
+    'shipState',
+  ] as const
+
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string' || !String(body[field]).trim()) {
+      res.status(400).json({ error: `${field} is required` })
+      return
+    }
+  }
+
+  if (!String(body.email).includes('@')) {
+    res.status(400).json({ error: 'Valid email is required' })
+    return
+  }
+
+  const sameAsShipping = Boolean(body.sameAsShipping)
+  const dutyAddress1 = sameAsShipping ? body.shipAddress1 : body.dutyAddress1
+  const dutyZip = sameAsShipping ? body.shipZip : body.dutyZip
+  const dutyCity = sameAsShipping ? body.shipCity : body.dutyCity
+  const dutyState = sameAsShipping ? body.shipState : body.dutyState
+
+  if (!sameAsShipping) {
+    for (const [label, value] of [
+      ['dutyAddress1', dutyAddress1],
+      ['dutyZip', dutyZip],
+      ['dutyCity', dutyCity],
+      ['dutyState', dutyState],
+    ] as const) {
+      if (!value || typeof value !== 'string' || !value.trim()) {
+        res.status(400).json({ error: `${label} is required when duty address differs` })
+        return
+      }
+    }
+  }
+
+  const unitCost = typeof body.unitCost === 'number' ? body.unitCost : 250
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: 'New',
+    ru1: String(body.ru1).split(' - ')[0] || String(body.ru1),
+    ru2: typeof body.ru2 === 'string' && body.ru2 ? body.ru2 : 'ANRS',
+    designatorCode: String(body.bureauDesignator).slice(0, 3).toUpperCase(),
+    ccat1: String(body.ccat1),
+    ccat2: String(body.ccat2),
+    unitCost,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+  draft.orderType = 'New Order'
+
+  const spent = orderTotal(draft.items)
+  res.status(201).json({
+    item,
+    review: reviewPayload(draft),
+    cartCount: draft.items.length,
+    costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    message: 'Item added to cart',
+  })
 })

@@ -5,6 +5,7 @@ import { FilterBar } from '../components/FilterBar'
 import { FundingCards } from '../components/FundingCards'
 import { OrdersTable } from '../components/OrdersTable'
 import { PlaceOrderModal } from '../components/PlaceOrderModal'
+import { NewOrderModal } from '../components/NewOrderModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { OrderSummaryModal } from '../components/OrderSummaryModal'
 import { SimpleDialog } from '../components/SimpleDialog'
@@ -56,6 +57,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
+  const [newOrderDraftId, setNewOrderDraftId] = useState<string | null>(null)
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
   const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
   const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
@@ -209,13 +211,30 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         open={placeOrderOpen}
         onClose={() => setPlaceOrderOpen(false)}
         onOpenReview={(draftId) => setReviewDraftId(draftId)}
+        onOpenNewOrder={(draftId) => setNewOrderDraftId(draftId)}
+      />
+      <NewOrderModal
+        open={Boolean(newOrderDraftId)}
+        draftId={newOrderDraftId}
+        onClose={() => setNewOrderDraftId(null)}
+        onBack={() => {
+          setNewOrderDraftId(null)
+          setPlaceOrderOpen(true)
+        }}
+        onGoToCart={(draftId, cartCount) => {
+          setCartCount(cartCount)
+          setNewOrderDraftId(null)
+          setReviewDraftId(draftId)
+        }}
       />
       <ReviewOrderModal
         open={Boolean(reviewDraftId)}
         draftId={reviewDraftId}
         onClose={() => setReviewDraftId(null)}
         onAddMore={() => {
-          // Stay on review; item already added via API
+          if (!reviewDraftId) return
+          setReviewDraftId(null)
+          setNewOrderDraftId(reviewDraftId)
         }}
         onPlaced={(review) => {
           setCartCount(0)

@@ -29,7 +29,7 @@ export type PlaceOrderDraft = {
   nickname: string
   fundingAvailableBefore: number
   createdAt: string
-  step: 'start' | 'selection' | 'review' | 'placed'
+  step: 'start' | 'selection' | 'form' | 'review' | 'placed'
   orderType: string | null
   bulkUploadFileName: string | null
   items: DraftLineItem[]
@@ -183,4 +183,83 @@ export async function placeReviewOrder(draftId: string) {
 
 export async function fetchOrderSummary(draftId: string) {
   return getJson<OrderSummaryPayload>(`/api/place-order/${draftId}/summary`)
+}
+
+export type NewOrderOptions = {
+  ru1: string[]
+  ru2: string[]
+  bureauDesignator: string[]
+  ccat1: string[]
+  ccat2: string[]
+  ccat3: string[]
+  restrictedReporting: string[]
+  signatureRequired: string[]
+  addressLine1: string[]
+  addressLine2: string[]
+  zips: string[]
+  unitCost: number
+}
+
+export type NewOrderContext = {
+  draftId: string
+  clin: string
+  bureau: string
+  nickname: string
+  orderType: string
+  fundingAvailableBeforeFormatted: string
+  unitCostFormatted: string
+  costRemainingForClinFormatted: string
+  cartCount: number
+  unitCost: number
+}
+
+export type NewOrderItemInput = {
+  firstName: string
+  lastName: string
+  email: string
+  ru1: string
+  ru2: string
+  bureauDesignator: string
+  ccat1: string
+  ccat2: string
+  ccat3: string
+  restrictedReporting: string
+  requestedDeliveryDate: string
+  shipAddress1: string
+  shipAddress2: string
+  shipZip: string
+  shipCity: string
+  shipState: string
+  addToAddressBook: boolean
+  setAsDefault: boolean
+  sameAsShipping: boolean
+  dutyAddress1: string
+  dutyAddress2: string
+  dutyZip: string
+  dutyCity: string
+  dutyState: string
+  signatureRequired: string
+  deliveryInstructions: string
+  unitCost: number
+}
+
+export async function fetchNewOrderOptions() {
+  return getJson<NewOrderOptions>('/api/place-order/new-order/options')
+}
+
+export async function fetchNewOrderContext(draftId: string) {
+  return getJson<NewOrderContext>(`/api/place-order/${draftId}/new-order-context`)
+}
+
+export async function lookupZip(zip: string) {
+  return getJson<{ zip: string; city: string; state: string }>(`/api/place-order/zip/${zip}`)
+}
+
+export async function submitNewOrderItem(draftId: string, input: NewOrderItemInput) {
+  return sendJson<{
+    cartCount: number
+    costRemainingForClinFormatted: string
+    message: string
+    review: ReviewOrderPayload
+  }>(`/api/place-order/${draftId}/new-order-item`, 'POST', input)
 }

@@ -16,9 +16,16 @@ type PlaceOrderModalProps = {
   onClose: () => void
   onStarted?: (draft: PlaceOrderDraft) => void
   onOpenReview?: (draftId: string) => void
+  onOpenNewOrder?: (draftId: string) => void
 }
 
-export function PlaceOrderModal({ open, onClose, onStarted, onOpenReview }: PlaceOrderModalProps) {
+export function PlaceOrderModal({
+  open,
+  onClose,
+  onStarted,
+  onOpenReview,
+  onOpenNewOrder,
+}: PlaceOrderModalProps) {
   const [step, setStep] = useState<Step>('start')
   const [bureauOptions, setBureauOptions] = useState<string[]>([])
   const [clinOptions, setClinOptions] = useState<string[]>([])
@@ -130,7 +137,11 @@ export function PlaceOrderModal({ open, onClose, onStarted, onOpenReview }: Plac
     try {
       const result = await selectOrderType(draft.id, value)
       setDraft(result.draft)
-      onOpenReview?.(result.draft.id)
+      if (value === 'New Order') {
+        onOpenNewOrder?.(result.draft.id)
+      } else {
+        onOpenReview?.(result.draft.id)
+      }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to select order type')
