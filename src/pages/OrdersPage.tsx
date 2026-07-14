@@ -7,6 +7,7 @@ import { OrdersTable } from '../components/OrdersTable'
 import { PlaceOrderModal } from '../components/PlaceOrderModal'
 import { NewOrderModal } from '../components/NewOrderModal'
 import { InternationalPassModal } from '../components/InternationalPassModal'
+import { ReplaceUpgradeModal } from '../components/ReplaceUpgradeModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { OrderSummaryModal } from '../components/OrderSummaryModal'
 import { ItemizationModal } from '../components/ItemizationModal'
@@ -61,6 +62,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
   const [newOrderDraftId, setNewOrderDraftId] = useState<string | null>(null)
   const [intlPassDraftId, setIntlPassDraftId] = useState<string | null>(null)
+  const [replaceUpgradeDraftId, setReplaceUpgradeDraftId] = useState<string | null>(null)
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
   const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
   const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
@@ -219,6 +221,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         onOpenReview={(draftId) => setReviewDraftId(draftId)}
         onOpenNewOrder={(draftId) => setNewOrderDraftId(draftId)}
         onOpenInternationalPass={(draftId) => setIntlPassDraftId(draftId)}
+        onOpenReplaceUpgrade={(draftId) => setReplaceUpgradeDraftId(draftId)}
       />
       <NewOrderModal
         open={Boolean(newOrderDraftId)}
@@ -245,6 +248,20 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         onGoToCart={(draftId, cartCount) => {
           setCartCount(cartCount)
           setIntlPassDraftId(null)
+          setReviewDraftId(draftId)
+        }}
+      />
+      <ReplaceUpgradeModal
+        open={Boolean(replaceUpgradeDraftId)}
+        draftId={replaceUpgradeDraftId}
+        onClose={() => setReplaceUpgradeDraftId(null)}
+        onBack={() => {
+          setReplaceUpgradeDraftId(null)
+          setPlaceOrderOpen(true)
+        }}
+        onGoToCart={(draftId, cartCount) => {
+          setCartCount(cartCount)
+          setReplaceUpgradeDraftId(null)
           setReviewDraftId(draftId)
         }}
       />

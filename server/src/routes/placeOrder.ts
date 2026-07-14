@@ -265,6 +265,23 @@ placeOrderRouter.get('/international-pass/options', (_req, res) => {
   })
 })
 
+placeOrderRouter.get('/replace-upgrade/options', (_req, res) => {
+  res.json({
+    puiNickname: filterOptions.ru1,
+    bureauDesignator: filterOptions.bureau,
+    eca1: ['ECA-100', 'ECA-200', 'ECA-300'],
+    eca2: ['ECA-A', 'ECA-B', 'ECA-C'],
+    eca3: ['Standard', 'Priority', 'Expedited'],
+    restrictedReporting: ['No (default)', 'Yes'],
+    signatureRequired: ['No (default)', 'Yes', 'Wait'],
+    addressLine1: ['1849 C Street NW', '1201 Oak Ridge Ave', '450 Federal Plaza'],
+    addressLine2: ['Suite 100', 'Building B', 'Floor 3', ''],
+    zips: Object.keys(zipLookup),
+    unitCost: 33333,
+    initialMaintenanceUnitCost: 22222,
+  })
+})
+
 placeOrderRouter.get('/zip/:zip', (req, res) => {
   const match = zipLookup[req.params.zip]
   if (!match) {
@@ -362,7 +379,11 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
   }
 
   draft.orderType = orderType
-  if (orderType === 'New Order' || orderType === 'International Pass') {
+  if (
+    orderType === 'New Order' ||
+    orderType === 'International Pass' ||
+    orderType === 'Replace-Upgrade'
+  ) {
     draft.items = []
     draft.step = 'form'
   } else {
@@ -379,7 +400,9 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
         ? `Order type "${orderType}" selected. Continue to New Order form.`
         : orderType === 'International Pass'
           ? `Order type "${orderType}" selected. Continue to International Pass form.`
-          : `Order type "${orderType}" selected. Review your order.`,
+          : orderType === 'Replace-Upgrade'
+            ? `Order type "${orderType}" selected. Continue to Replace-Upgrade form.`
+            : `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
@@ -752,5 +775,101 @@ placeOrderRouter.post('/:draftId/international-pass-item', (req, res) => {
       passEndDate: body.passEndDate,
       sameEmailDomain: Boolean(body.sameEmailDomain),
     },
+  })
+})
+
+placeOrderRouter.get('/:draftId/replace-upgrade-context', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  const unitCost = 33333
+  const initialMaintenanceUnitCost = 22222
+  const spent = orderTotal(draft.items)
+  res.json({
+    draftId: draft.id,
+    clin: draft.clin,
+    bureau: draft.bureau,
+    nickname: draft.nickname,
+    orderType: 'Replace-Upgrade',
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    unitCost,
+    unitCostFormatted: formatCurrency(unitCost),
+    initialMaintenanceUnitCost,
+    initialMaintenanceUnitCostFormatted: formatCurrency(initialMaintenanceUnitCost),
+    costRemainingForClin: draft.fundingAvailableBefore - spent,
+    costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    cartCount: draft.items.length,
+    whatThisMeans:
+      'Replace-Upgrade swaps or upgrades an existing device under the selected CLIN while preserving bureau ownership.',
+    note: 'Ensure PUI nicknames and delivery dates align with the active Period of Performance.',
+  })
+})
+
+placeOrderRouter.post('/:draftId/replace-upgrade-item', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const body = req.body ?? {}
+  const required = [
+    'firstName',
+    'lastName',
+    'email',
+    'puiNickname1',
+    'bureauDesignator',
+    'eca1',
+    'eca2',
+    'requestedDeliveryDate',
+    'shipAddress1',
+    'shipZip',
+    'shipCity',
+    'shipState',
+  ] as const
+
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string' || !String(body[field]).trim()) {
+      res.status(400).json({ error: `${field} is required` })
+      return
+    }
+  }
+
+  if (!String(body.email).includes('@')) {
+    res.status(400).json({ error: 'Valid email is required' })
+    return
+  }
+
+  const unitCost = typeof body.unitCost === 'number' ? body.unitCost : 33333
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: 'Upgrade',
+    ru1: String(body.puiNickname1).split(' - ')[0] || String(body.puiNickname1),
+    ru2:
+      typeof body.puiNickname2 === 'string' && body.puiNickname2
+        ? String(body.puiNickname2).includes(' - ')
+          ? String(body.puiNickname2).split(' - ').pop() || 'ANRS'
+          : body.puiNickname2
+        : 'ANRS',
+    designatorCode: String(body.bureauDesignator).slice(0, 3).toUpperCase(),
+    ccat1: String(body.eca1),
+    ccat2: String(body.eca2),
+    unitCost,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+  draft.orderType = 'Replace-Upgrade'
+
+  const spent = orderTotal(draft.items)
+  res.status(201).json({
+    item,
+    review: reviewPayload(draft),
+    cartCount: draft.items.length,
+    costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    message: 'Replace-Upgrade item added to cart',
   })
 })

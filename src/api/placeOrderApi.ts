@@ -326,3 +326,79 @@ export async function submitInternationalPassItem(
     review: ReviewOrderPayload
   }>(`/api/place-order/${draftId}/international-pass-item`, 'POST', input)
 }
+
+export type ReplaceUpgradeOptions = {
+  puiNickname: string[]
+  bureauDesignator: string[]
+  eca1: string[]
+  eca2: string[]
+  eca3: string[]
+  restrictedReporting: string[]
+  signatureRequired: string[]
+  addressLine1: string[]
+  addressLine2: string[]
+  zips: string[]
+  unitCost: number
+  initialMaintenanceUnitCost: number
+}
+
+export type ReplaceUpgradeContext = {
+  draftId: string
+  clin: string
+  bureau: string
+  nickname: string
+  orderType: string
+  fundingAvailableBeforeFormatted: string
+  unitCost: number
+  unitCostFormatted: string
+  initialMaintenanceUnitCost: number
+  initialMaintenanceUnitCostFormatted: string
+  costRemainingForClinFormatted: string
+  cartCount: number
+  whatThisMeans: string
+  note: string
+}
+
+export type ReplaceUpgradeItemInput = {
+  firstName: string
+  lastName: string
+  email: string
+  puiNickname1: string
+  puiNickname2: string
+  bureauDesignator: string
+  eca1: string
+  eca2: string
+  eca3: string
+  restrictedReporting: string
+  requestedDeliveryDate: string
+  shipAddress1: string
+  shipAddress2: string
+  shipZip: string
+  shipCity: string
+  shipState: string
+  setAsStandardAddress: boolean
+  setAsShipToDefault: boolean
+  signatureRequired: string
+  deliveryInstructions: string
+  unitCost: number
+}
+
+export async function fetchReplaceUpgradeOptions() {
+  return getJson<ReplaceUpgradeOptions>('/api/place-order/replace-upgrade/options')
+}
+
+export async function fetchReplaceUpgradeContext(draftId: string) {
+  return getJson<ReplaceUpgradeContext>(`/api/place-order/${draftId}/replace-upgrade-context`)
+}
+
+export async function submitReplaceUpgradeItem(
+  draftId: string,
+  input: ReplaceUpgradeItemInput,
+) {
+  return sendJson<{
+    cartCount: number
+    costRemainingForClinFormatted: string
+    message: string
+    review: ReviewOrderPayload
+  }>(`/api/place-order/${draftId}/replace-upgrade-item`, 'POST', input)
+}
