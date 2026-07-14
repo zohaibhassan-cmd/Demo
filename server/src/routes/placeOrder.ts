@@ -257,6 +257,14 @@ placeOrderRouter.get('/new-order/options', (_req, res) => {
   })
 })
 
+placeOrderRouter.get('/international-pass/options', (_req, res) => {
+  res.json({
+    piuNickname: filterOptions.ru1,
+    bureauDesignator: filterOptions.bureau,
+    unitCost: 89,
+  })
+})
+
 placeOrderRouter.get('/zip/:zip', (req, res) => {
   const match = zipLookup[req.params.zip]
   if (!match) {
@@ -354,7 +362,7 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
   }
 
   draft.orderType = orderType
-  if (orderType === 'New Order') {
+  if (orderType === 'New Order' || orderType === 'International Pass') {
     draft.items = []
     draft.step = 'form'
   } else {
@@ -369,7 +377,9 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
     message:
       orderType === 'New Order'
         ? `Order type "${orderType}" selected. Continue to New Order form.`
-        : `Order type "${orderType}" selected. Review your order.`,
+        : orderType === 'International Pass'
+          ? `Order type "${orderType}" selected. Continue to International Pass form.`
+          : `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
@@ -624,5 +634,123 @@ placeOrderRouter.post('/:draftId/new-order-item', (req, res) => {
     cartCount: draft.items.length,
     costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
     message: 'Item added to cart',
+  })
+})
+
+const historicalPassDates = [
+  { orderNumber: '123451', passStartDate: '01/05/2025', passEndDate: '01/20/2025' },
+  { orderNumber: '123452', passStartDate: '02/01/2025', passEndDate: '02/15/2025' },
+  { orderNumber: '123453', passStartDate: '03/10/2025', passEndDate: '03/25/2025' },
+  { orderNumber: '123454', passStartDate: '04/02/2025', passEndDate: '04/18/2025' },
+]
+
+placeOrderRouter.get('/:draftId/international-pass-context', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  const unitCost = 89
+  const spent = orderTotal(draft.items)
+  res.json({
+    draftId: draft.id,
+    clin: draft.clin,
+    bureau: draft.bureau,
+    nickname: draft.nickname,
+    orderType: 'International Pass',
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    unitCost,
+    unitCostFormatted: formatCurrency(unitCost),
+    costRemainingForPop: draft.fundingAvailableBefore - spent,
+    costRemainingForPopFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    cartCount: draft.items.length,
+    historicalPasses: historicalPassDates,
+  })
+})
+
+placeOrderRouter.post('/:draftId/international-pass-item', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const body = req.body ?? {}
+  const required = [
+    'mobileNumber',
+    'firstName',
+    'lastName',
+    'email',
+    'piuNickname1',
+    'bureauDesignator',
+    'passStartDate',
+    'passEndDate',
+  ] as const
+
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string' || !String(body[field]).trim()) {
+      res.status(400).json({ error: `${field} is required` })
+      return
+    }
+  }
+
+  if (!String(body.email).includes('@')) {
+    res.status(400).json({ error: 'Valid email is required' })
+    return
+  }
+
+  const start = new Date(String(body.passStartDate))
+  const end = new Date(String(body.passEndDate))
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    res.status(400).json({ error: 'Pass End Date must be on or after Pass Start Date' })
+    return
+  }
+
+  if (body.requireWithinWindow) {
+    const limit = new Date()
+    limit.setDate(limit.getDate() + 90)
+    if (end > limit) {
+      res.status(400).json({
+        error: 'Pass dates must fall within the next 90 days when the restriction is checked',
+      })
+      return
+    }
+  }
+
+  const unitCost = typeof body.unitCost === 'number' ? body.unitCost : 89
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: 'International Pass',
+    ru1: String(body.piuNickname1).split(' - ')[0] || String(body.piuNickname1),
+    ru2:
+      typeof body.piuNickname2 === 'string' && body.piuNickname2
+        ? String(body.piuNickname2).includes(' - ')
+          ? String(body.piuNickname2).split(' - ').pop() || 'ANRS'
+          : body.piuNickname2
+        : 'ANRS',
+    designatorCode: String(body.bureauDesignator).slice(0, 3).toUpperCase(),
+    ccat1: 'Wireless',
+    ccat2: 'Pass',
+    unitCost,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+  draft.orderType = 'International Pass'
+
+  const spent = orderTotal(draft.items)
+  res.status(201).json({
+    item,
+    review: reviewPayload(draft),
+    cartCount: draft.items.length,
+    costRemainingForPopFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
+    message: 'International Pass item added to cart',
+    passMeta: {
+      mobileNumber: body.mobileNumber,
+      passStartDate: body.passStartDate,
+      passEndDate: body.passEndDate,
+      sameEmailDomain: Boolean(body.sameEmailDomain),
+    },
   })
 })

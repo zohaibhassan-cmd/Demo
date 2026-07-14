@@ -263,3 +263,66 @@ export async function submitNewOrderItem(draftId: string, input: NewOrderItemInp
     review: ReviewOrderPayload
   }>(`/api/place-order/${draftId}/new-order-item`, 'POST', input)
 }
+
+export type InternationalPassOptions = {
+  piuNickname: string[]
+  bureauDesignator: string[]
+  unitCost: number
+}
+
+export type HistoricalPassRow = {
+  orderNumber: string
+  passStartDate: string
+  passEndDate: string
+}
+
+export type InternationalPassContext = {
+  draftId: string
+  clin: string
+  bureau: string
+  nickname: string
+  orderType: string
+  fundingAvailableBeforeFormatted: string
+  unitCost: number
+  unitCostFormatted: string
+  costRemainingForPopFormatted: string
+  cartCount: number
+  historicalPasses: HistoricalPassRow[]
+}
+
+export type InternationalPassItemInput = {
+  mobileNumber: string
+  firstName: string
+  lastName: string
+  email: string
+  piuNickname1: string
+  piuNickname2: string
+  bureauDesignator: string
+  sameEmailDomain: boolean
+  requireWithinWindow: boolean
+  passStartDate: string
+  passEndDate: string
+  unitCost: number
+}
+
+export async function fetchInternationalPassOptions() {
+  return getJson<InternationalPassOptions>('/api/place-order/international-pass/options')
+}
+
+export async function fetchInternationalPassContext(draftId: string) {
+  return getJson<InternationalPassContext>(
+    `/api/place-order/${draftId}/international-pass-context`,
+  )
+}
+
+export async function submitInternationalPassItem(
+  draftId: string,
+  input: InternationalPassItemInput,
+) {
+  return sendJson<{
+    cartCount: number
+    costRemainingForPopFormatted: string
+    message: string
+    review: ReviewOrderPayload
+  }>(`/api/place-order/${draftId}/international-pass-item`, 'POST', input)
+}

@@ -6,6 +6,7 @@ import { FundingCards } from '../components/FundingCards'
 import { OrdersTable } from '../components/OrdersTable'
 import { PlaceOrderModal } from '../components/PlaceOrderModal'
 import { NewOrderModal } from '../components/NewOrderModal'
+import { InternationalPassModal } from '../components/InternationalPassModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { OrderSummaryModal } from '../components/OrderSummaryModal'
 import { ItemizationModal } from '../components/ItemizationModal'
@@ -59,6 +60,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [error, setError] = useState<string | null>(null)
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false)
   const [newOrderDraftId, setNewOrderDraftId] = useState<string | null>(null)
+  const [intlPassDraftId, setIntlPassDraftId] = useState<string | null>(null)
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
   const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
   const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
@@ -216,6 +218,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
         onClose={() => setPlaceOrderOpen(false)}
         onOpenReview={(draftId) => setReviewDraftId(draftId)}
         onOpenNewOrder={(draftId) => setNewOrderDraftId(draftId)}
+        onOpenInternationalPass={(draftId) => setIntlPassDraftId(draftId)}
       />
       <NewOrderModal
         open={Boolean(newOrderDraftId)}
@@ -231,14 +234,29 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setReviewDraftId(draftId)
         }}
       />
+      <InternationalPassModal
+        open={Boolean(intlPassDraftId)}
+        draftId={intlPassDraftId}
+        onClose={() => setIntlPassDraftId(null)}
+        onBack={() => {
+          setIntlPassDraftId(null)
+          setPlaceOrderOpen(true)
+        }}
+        onGoToCart={(draftId, cartCount) => {
+          setCartCount(cartCount)
+          setIntlPassDraftId(null)
+          setReviewDraftId(draftId)
+        }}
+      />
       <ReviewOrderModal
         open={Boolean(reviewDraftId)}
         draftId={reviewDraftId}
         onClose={() => setReviewDraftId(null)}
         onAddMore={() => {
           if (!reviewDraftId) return
+          const id = reviewDraftId
           setReviewDraftId(null)
-          setNewOrderDraftId(reviewDraftId)
+          setNewOrderDraftId(id)
         }}
         onPlaced={(review) => {
           setCartCount(0)

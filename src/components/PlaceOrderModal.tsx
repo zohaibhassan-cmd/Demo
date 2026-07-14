@@ -17,6 +17,7 @@ type PlaceOrderModalProps = {
   onStarted?: (draft: PlaceOrderDraft) => void
   onOpenReview?: (draftId: string) => void
   onOpenNewOrder?: (draftId: string) => void
+  onOpenInternationalPass?: (draftId: string) => void
 }
 
 export function PlaceOrderModal({
@@ -25,6 +26,7 @@ export function PlaceOrderModal({
   onStarted,
   onOpenReview,
   onOpenNewOrder,
+  onOpenInternationalPass,
 }: PlaceOrderModalProps) {
   const [step, setStep] = useState<Step>('start')
   const [bureauOptions, setBureauOptions] = useState<string[]>([])
@@ -139,6 +141,8 @@ export function PlaceOrderModal({
       setDraft(result.draft)
       if (value === 'New Order') {
         onOpenNewOrder?.(result.draft.id)
+      } else if (value === 'International Pass') {
+        onOpenInternationalPass?.(result.draft.id)
       } else {
         onOpenReview?.(result.draft.id)
       }
