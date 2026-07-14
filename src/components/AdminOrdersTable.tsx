@@ -1,4 +1,3 @@
-import { useState, Fragment } from 'react'
 import type { AdminOrderRow } from '../api/adminApi'
 import './OrdersTable.css'
 
@@ -10,6 +9,7 @@ type AdminOrdersTableProps = {
   search: string
   onSearchChange: (value: string) => void
   onExport: () => void
+  onItemize?: (orderId: string) => void
 }
 
 export function AdminOrdersTable({
@@ -20,8 +20,8 @@ export function AdminOrdersTable({
   search,
   onSearchChange,
   onExport,
+  onItemize,
 }: AdminOrdersTableProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const dateColumnLabel =
     variant === 'pending' ? 'Earliest Request Date' : 'To Vendor Date'
 
@@ -68,38 +68,30 @@ export function AdminOrdersTable({
 
             {!loading &&
               rows.map((row, index) => {
-                const open = expandedId === row.id
                 const dateValue =
                   variant === 'pending' ? row.earliestRequestDate : row.toVendorDate
                 return (
-                  <Fragment key={row.id}>
-                    <tr className={index % 2 === 1 ? 'orders-table__row--alt' : undefined}>
-                      <td>
-                        <button
-                          type="button"
-                          className="orders-table__expand"
-                          aria-expanded={open}
-                          aria-label={`${open ? 'Collapse' : 'Expand'} order ${row.orderNumber}`}
-                          onClick={() => setExpandedId(open ? null : row.id)}
-                        >
-                          <ExpandIcon />
-                        </button>
-                      </td>
-                      <td>{row.orderNumber}</td>
-                      <td>{row.orderDate}</td>
-                      <td>{row.clin}</td>
-                      <td>{row.totalPopCost}</td>
-                      <td>{dateValue ?? '—'}</td>
-                      <td>{row.orderedBy}</td>
-                    </tr>
-                    {open ? (
-                      <tr className="orders-table__detail-row">
-                        <td colSpan={7}>
-                          Admin detail for {row.orderNumber}. API: /api/orders/{row.id}
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
+                  <tr
+                    key={row.id}
+                    className={index % 2 === 1 ? 'orders-table__row--alt' : undefined}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="orders-table__expand"
+                        aria-label={`Open itemization for order ${row.orderNumber}`}
+                        onClick={() => onItemize?.(row.id)}
+                      >
+                        <ExpandIcon />
+                      </button>
+                    </td>
+                    <td>{row.orderNumber}</td>
+                    <td>{row.orderDate}</td>
+                    <td>{row.clin}</td>
+                    <td>{row.totalPopCost}</td>
+                    <td>{dateValue ?? '—'}</td>
+                    <td>{row.orderedBy}</td>
+                  </tr>
                 )
               })}
 

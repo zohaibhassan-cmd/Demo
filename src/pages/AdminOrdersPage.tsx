@@ -3,6 +3,7 @@ import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { AdminFilterBar } from '../components/AdminFilterBar'
 import { AdminOrdersTable } from '../components/AdminOrdersTable'
+import { ItemizationModal } from '../components/ItemizationModal'
 import {
   exportAdminOrdersUrl,
   fetchAdminFilterOptions,
@@ -40,6 +41,7 @@ export function AdminOrdersPage({ onSwitchToBureau }: AdminOrdersPageProps) {
   const [historicalSearch, setHistoricalSearch] = useState('')
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [itemizeOrderId, setItemizeOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -105,7 +107,6 @@ export function AdminOrdersPage({ onSwitchToBureau }: AdminOrdersPageProps) {
         active="Order"
         onNavigate={(item) => {
           if (item === 'Order') return
-          // Placeholder tabs — switch demo view from footer link
         }}
       />
       <AdminFilterBar values={filters} options={filterOptions} onChange={setFilters} />
@@ -127,6 +128,7 @@ export function AdminOrdersPage({ onSwitchToBureau }: AdminOrdersPageProps) {
           search={pendingSearch}
           onSearchChange={setPendingSearch}
           onExport={() => handleExport('pending')}
+          onItemize={setItemizeOrderId}
         />
         <AdminOrdersTable
           title="Historical Orders"
@@ -136,10 +138,17 @@ export function AdminOrdersPage({ onSwitchToBureau }: AdminOrdersPageProps) {
           search={historicalSearch}
           onSearchChange={setHistoricalSearch}
           onExport={() => handleExport('historical')}
+          onItemize={setItemizeOrderId}
         />
       </main>
 
       <Footer />
+
+      <ItemizationModal
+        open={Boolean(itemizeOrderId)}
+        orderId={itemizeOrderId}
+        onClose={() => setItemizeOrderId(null)}
+      />
     </div>
   )
 }

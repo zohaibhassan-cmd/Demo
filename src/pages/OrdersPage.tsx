@@ -8,6 +8,7 @@ import { PlaceOrderModal } from '../components/PlaceOrderModal'
 import { NewOrderModal } from '../components/NewOrderModal'
 import { ReviewOrderModal } from '../components/ReviewOrderModal'
 import { OrderSummaryModal } from '../components/OrderSummaryModal'
+import { ItemizationModal } from '../components/ItemizationModal'
 import { SimpleDialog } from '../components/SimpleDialog'
 import type { OrderSummaryPayload } from '../api/placeOrderApi'
 import {
@@ -61,6 +62,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
   const [reviewDraftId, setReviewDraftId] = useState<string | null>(null)
   const [summaryDraftId, setSummaryDraftId] = useState<string | null>(null)
   const [orderSummary, setOrderSummary] = useState<OrderSummaryPayload | null>(null)
+  const [itemizeOrderId, setItemizeOrderId] = useState<string | null>(null)
   const [infoDialog, setInfoDialog] = useState<{ title: string; message: string } | null>(null)
 
   useEffect(() => {
@@ -194,6 +196,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           search={pendingSearch}
           onSearchChange={setPendingSearch}
           onExport={() => handleExport('pending')}
+          onItemize={setItemizeOrderId}
         />
         <OrdersTable
           title="Historical Orders"
@@ -202,6 +205,7 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           search={historicalSearch}
           onSearchChange={setHistoricalSearch}
           onExport={() => handleExport('historical')}
+          onItemize={setItemizeOrderId}
         />
       </main>
 
@@ -251,6 +255,11 @@ export function OrdersPage({ onSwitchToAdmin }: { onSwitchToAdmin?: () => void }
           setSummaryDraftId(null)
           setOrderSummary(null)
         }}
+      />
+      <ItemizationModal
+        open={Boolean(itemizeOrderId)}
+        orderId={itemizeOrderId}
+        onClose={() => setItemizeOrderId(null)}
       />
       <SimpleDialog
         open={Boolean(infoDialog)}

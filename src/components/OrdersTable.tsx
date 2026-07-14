@@ -1,4 +1,3 @@
-import { useState, Fragment } from 'react'
 import type { OrderRow } from '../api/ordersApi'
 import './OrdersTable.css'
 
@@ -9,6 +8,7 @@ type OrdersTableProps = {
   search: string
   onSearchChange: (value: string) => void
   onExport: () => void
+  onItemize?: (orderId: string) => void
 }
 
 const columns = [
@@ -29,9 +29,8 @@ export function OrdersTable({
   search,
   onSearchChange,
   onExport,
+  onItemize,
 }: OrdersTableProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-
   return (
     <section className="orders-table">
       <div className="orders-table__toolbar">
@@ -72,41 +71,30 @@ export function OrdersTable({
             ) : null}
 
             {!loading &&
-              rows.map((row, index) => {
-                const open = expandedId === row.id
-                return (
-                  <Fragment key={row.id}>
-                    <tr className={index % 2 === 1 ? 'orders-table__row--alt' : undefined}>
-                      <td>
-                        <button
-                          type="button"
-                          className="orders-table__expand"
-                          aria-expanded={open}
-                          aria-label={`${open ? 'Collapse' : 'Expand'} order ${row.orderNumber}`}
-                          onClick={() => setExpandedId(open ? null : row.id)}
-                        >
-                          <ExpandIcon />
-                        </button>
-                      </td>
-                      <td>{row.orderDate}</td>
-                      <td>{row.orderNumber}</td>
-                      <td>{row.nickname}</td>
-                      <td>{row.clin}</td>
-                      <td>{row.totalItems}</td>
-                      <td>{row.totalPopCost}</td>
-                      <td>{row.orderedBy}</td>
-                    </tr>
-                    {open ? (
-                      <tr className="orders-table__detail-row">
-                        <td colSpan={8}>
-                          Itemization for {row.orderNumber} — {row.nickname}. Detail API:
-                          /api/orders/{row.id}
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                )
-              })}
+              rows.map((row, index) => (
+                <tr
+                  key={row.id}
+                  className={index % 2 === 1 ? 'orders-table__row--alt' : undefined}
+                >
+                  <td>
+                    <button
+                      type="button"
+                      className="orders-table__expand"
+                      aria-label={`Open itemization for order ${row.orderNumber}`}
+                      onClick={() => onItemize?.(row.id)}
+                    >
+                      <ExpandIcon />
+                    </button>
+                  </td>
+                  <td>{row.orderDate}</td>
+                  <td>{row.orderNumber}</td>
+                  <td>{row.nickname}</td>
+                  <td>{row.clin}</td>
+                  <td>{row.totalItems}</td>
+                  <td>{row.totalPopCost}</td>
+                  <td>{row.orderedBy}</td>
+                </tr>
+              ))}
 
             {!loading && rows.length === 0 ? (
               <tr>
