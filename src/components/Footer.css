@@ -1,0 +1,27 @@
+.app-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding: 0.85rem 1.5rem;
+  background: var(--navy);
+  color: var(--white);
+}
+
+.app-footer__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.app-footer__text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}

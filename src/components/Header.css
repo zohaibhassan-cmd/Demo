@@ -1,0 +1,77 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--navy);
+  color: var(--white);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-header__logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-header__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header__pipe {
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.app-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.app-header__nav-btn {
+  padding: 0.4rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.app-header__nav-btn--active {
+  background: var(--navy-mid);
+  border-color: rgba(255, 255, 255, 0.85);
+  color: var(--white);
+}
+
+@media (max-width: 900px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .app-header__title {
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+}

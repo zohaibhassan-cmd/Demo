@@ -1,0 +1,45 @@
+:root {
+  --navy: #0b2a5b;
+  --navy-deep: #061f47;
+  --navy-mid: #163a73;
+  --blue-link: #1a4f9c;
+  --gray-bg: #e8ebf0;
+  --gray-page: #dfe3ea;
+  --gray-card: #eceff3;
+  --gray-border: #c5cbd6;
+  --white: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #5a6472;
+  --row-alt: #f3f5f8;
+  --font: 'Source Sans 3', 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--gray-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}

@@ -1,0 +1,11 @@
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--gray-page);
+}
+
+.orders-page__main {
+  flex: 1;
+  padding-bottom: 1.25rem;
+}
