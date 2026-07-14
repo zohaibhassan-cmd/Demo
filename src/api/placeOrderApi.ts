@@ -402,3 +402,62 @@ export async function submitReplaceUpgradeItem(
     review: ReviewOrderPayload
   }>(`/api/place-order/${draftId}/replace-upgrade-item`, 'POST', input)
 }
+
+export type SuspendOptions = {
+  ru1Nickname: string[]
+  ru2Nickname: string[]
+  devicesDesignator: string[]
+  unitCost: number
+}
+
+export type HistoricalSuspendRow = {
+  orderNumber: string
+  suspendDays: number
+  startDate: string
+  resumeDate: string
+}
+
+export type SuspendContext = {
+  draftId: string
+  clin: string
+  bureau: string
+  nickname: string
+  orderType: string
+  fundingAvailableBeforeFormatted: string
+  unitCost: number
+  unitCostFormatted: string
+  costRemainingForPopFormatted: string
+  cartCount: number
+  historicalSuspends: HistoricalSuspendRow[]
+}
+
+export type SuspendItemInput = {
+  mobileNumber: string
+  firstName: string
+  lastName: string
+  email: string
+  ru1Nickname: string
+  ru2Nickname: string
+  devicesDesignator: string
+  useEmailForNotifications: boolean
+  suspendStartDate: string
+  suspendEndDate: string
+  unitCost: number
+}
+
+export async function fetchSuspendOptions() {
+  return getJson<SuspendOptions>('/api/place-order/suspend/options')
+}
+
+export async function fetchSuspendContext(draftId: string) {
+  return getJson<SuspendContext>(`/api/place-order/${draftId}/suspend-context`)
+}
+
+export async function submitSuspendItem(draftId: string, input: SuspendItemInput) {
+  return sendJson<{
+    cartCount: number
+    costRemainingForPopFormatted: string
+    message: string
+    review: ReviewOrderPayload
+  }>(`/api/place-order/${draftId}/suspend-item`, 'POST', input)
+}

@@ -282,6 +282,15 @@ placeOrderRouter.get('/replace-upgrade/options', (_req, res) => {
   })
 })
 
+placeOrderRouter.get('/suspend/options', (_req, res) => {
+  res.json({
+    ru1Nickname: filterOptions.ru1,
+    ru2Nickname: filterOptions.ru2,
+    devicesDesignator: ['Multiple', 'Push Air', 'Ground Link', 'Secure Mesh'],
+    unitCost: 88888,
+  })
+})
+
 placeOrderRouter.get('/zip/:zip', (req, res) => {
   const match = zipLookup[req.params.zip]
   if (!match) {
@@ -382,7 +391,8 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
   if (
     orderType === 'New Order' ||
     orderType === 'International Pass' ||
-    orderType === 'Replace-Upgrade'
+    orderType === 'Replace-Upgrade' ||
+    orderType === 'Suspend'
   ) {
     draft.items = []
     draft.step = 'form'
@@ -402,7 +412,9 @@ placeOrderRouter.post('/:draftId/order-type', (req, res) => {
           ? `Order type "${orderType}" selected. Continue to International Pass form.`
           : orderType === 'Replace-Upgrade'
             ? `Order type "${orderType}" selected. Continue to Replace-Upgrade form.`
-            : `Order type "${orderType}" selected. Review your order.`,
+            : orderType === 'Suspend'
+              ? `Order type "${orderType}" selected. Continue to Suspend form.`
+              : `Order type "${orderType}" selected. Review your order.`,
   })
 })
 
@@ -871,5 +883,156 @@ placeOrderRouter.post('/:draftId/replace-upgrade-item', (req, res) => {
     cartCount: draft.items.length,
     costRemainingForClinFormatted: formatCurrency(draft.fundingAvailableBefore - spent),
     message: 'Replace-Upgrade item added to cart',
+  })
+})
+
+const historicalSuspendDates = [
+  {
+    orderNumber: '122212',
+    suspendDays: 180,
+    startDate: '01/05/2025',
+    resumeDate: '07/04/2025',
+  },
+  {
+    orderNumber: '45224',
+    suspendDays: 0,
+    startDate: '02/01/2025',
+    resumeDate: '02/01/2025',
+  },
+  {
+    orderNumber: '88901',
+    suspendDays: 30,
+    startDate: '03/10/2025',
+    resumeDate: '04/09/2025',
+  },
+  {
+    orderNumber: '90112',
+    suspendDays: 14,
+    startDate: '04/02/2025',
+    resumeDate: '04/16/2025',
+  },
+]
+
+placeOrderRouter.get('/:draftId/suspend-context', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+  const unitCost = 88888
+  const spent = orderTotal(draft.items)
+  const remaining = Math.max(0, draft.fundingAvailableBefore - spent)
+  res.json({
+    draftId: draft.id,
+    clin: draft.clin,
+    bureau: draft.bureau,
+    nickname: draft.nickname,
+    orderType: 'Suspend',
+    fundingAvailableBefore: draft.fundingAvailableBefore,
+    fundingAvailableBeforeFormatted: formatCurrency(draft.fundingAvailableBefore),
+    fundingBanner: `Total Funding Available (Before Order) ${formatCurrency(draft.fundingAvailableBefore)}`,
+    unitCost,
+    unitCostFormatted: formatCurrency(unitCost),
+    costRemainingForPop: remaining,
+    costRemainingForPopFormatted: formatCurrency(Math.min(unitCost, remaining) || unitCost),
+    cartCount: draft.items.length,
+    historicalSuspends: historicalSuspendDates,
+  })
+})
+
+placeOrderRouter.post('/:draftId/suspend-item', (req, res) => {
+  const draft = findDraft(req.params.draftId)
+  if (!draft) {
+    res.status(404).json({ error: 'Draft not found' })
+    return
+  }
+
+  const body = req.body ?? {}
+  const required = [
+    'mobileNumber',
+    'firstName',
+    'lastName',
+    'email',
+    'ru1Nickname',
+    'devicesDesignator',
+    'suspendStartDate',
+    'suspendEndDate',
+  ] as const
+
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string' || !String(body[field]).trim()) {
+      res.status(400).json({ error: `${field} is required` })
+      return
+    }
+  }
+
+  if (!String(body.email).includes('@')) {
+    res.status(400).json({ error: 'Valid email is required' })
+    return
+  }
+
+  const start = new Date(String(body.suspendStartDate))
+  const end = new Date(String(body.suspendEndDate))
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    res.status(400).json({ error: 'Suspend End Date must be on or after Suspend Start Date' })
+    return
+  }
+
+  const maxAdvanceStart = new Date()
+  maxAdvanceStart.setHours(0, 0, 0, 0)
+  maxAdvanceStart.setDate(maxAdvanceStart.getDate() + 15)
+  if (start > maxAdvanceStart) {
+    res.status(400).json({
+      error: 'Suspend Start Date can be at most 15 days in advance',
+    })
+    return
+  }
+
+  const maxEnd = new Date()
+  maxEnd.setHours(0, 0, 0, 0)
+  maxEnd.setMonth(maxEnd.getMonth() + 12)
+  if (end > maxEnd) {
+    res.status(400).json({
+      error: 'Suspend End Date can be at most 12 months in advance',
+    })
+    return
+  }
+
+  const unitCost = typeof body.unitCost === 'number' ? body.unitCost : 88888
+  const item: DraftLineItem = {
+    id: nextItemId(),
+    type: 'Suspend',
+    ru1: String(body.ru1Nickname).split(' - ')[0] || String(body.ru1Nickname),
+    ru2:
+      typeof body.ru2Nickname === 'string' && body.ru2Nickname
+        ? String(body.ru2Nickname).includes(' - ')
+          ? String(body.ru2Nickname).split(' - ').pop() || 'ANRS'
+          : body.ru2Nickname
+        : 'ANRS',
+    designatorCode: String(body.devicesDesignator).slice(0, 3).toUpperCase(),
+    ccat1: 'Wireless',
+    ccat2: 'Suspend',
+    unitCost,
+  }
+
+  draft.items.push(item)
+  draft.step = 'review'
+  draft.orderType = 'Suspend'
+
+  const spent = orderTotal(draft.items)
+  res.status(201).json({
+    item,
+    review: reviewPayload(draft),
+    cartCount: draft.items.length,
+    costRemainingForPopFormatted: formatCurrency(
+      Math.max(0, draft.fundingAvailableBefore - spent),
+    ),
+    message: 'Suspend item added to cart',
+    suspendMeta: {
+      mobileNumber: body.mobileNumber,
+      suspendStartDate: body.suspendStartDate,
+      suspendEndDate: body.suspendEndDate,
+      useEmailForNotifications: Boolean(body.useEmailForNotifications),
+    },
   })
 })

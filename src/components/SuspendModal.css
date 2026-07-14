@@ -1,0 +1,249 @@
+.suspend-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+  background: rgba(45, 52, 64, 0.72);
+}
+
+.suspend-modal {
+  position: relative;
+  width: min(680px, 100%);
+  margin: 1rem 0;
+  padding: 0 1.25rem 1.25rem;
+  border: 1px solid #c5cbd6;
+  border-radius: 4px;
+  background: #eef1f5;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.suspend-modal__chrome {
+  margin: 0 -1.25rem 0.75rem;
+  padding: 0.45rem 1rem;
+  background: #4a5564;
+  color: #d7dbe2;
+  font-size: 0.82rem;
+}
+
+.suspend-modal__close {
+  position: absolute;
+  top: 2.4rem;
+  right: 0.85rem;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.suspend-modal__title {
+  margin: 0.25rem 0 0.75rem;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.suspend-modal__funding,
+.suspend-modal__cost {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #9aa6b5;
+  border-radius: 2px;
+  background: #fff;
+  color: #0b2a5b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.suspend-modal__cart {
+  position: relative;
+  color: #3d4654;
+}
+
+.suspend-modal__cart-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.45rem;
+  min-width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: #2f6fb5;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+}
+
+.suspend-modal__type-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.suspend-modal__type-row label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 14rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.suspend-modal__type-row select,
+.suspend-modal__field input,
+.suspend-modal__field select {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #b7bec9;
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  font-weight: 400;
+}
+
+.suspend-modal__bulk {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.suspend-modal__bulk button {
+  border: none;
+  background: transparent;
+  color: #1a4f9c;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.suspend-modal h3 {
+  margin: 0.85rem 0 0.55rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.suspend-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+}
+
+.suspend-modal__field {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.suspend-modal__hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #5c6675;
+}
+
+.suspend-modal__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.65rem;
+  font-size: 0.85rem;
+}
+
+.suspend-modal__table-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+  border: 1px solid #c5cbd6;
+  background: #fff;
+}
+
+.suspend-modal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.suspend-modal th {
+  padding: 0.45rem 0.55rem;
+  background: #0b2a5b;
+  color: #fff;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.suspend-modal td {
+  padding: 0.4rem 0.55rem;
+  border-bottom: 1px solid #e4e8ef;
+}
+
+.suspend-modal tbody tr:nth-child(even) {
+  background: #f3f5f8;
+}
+
+.suspend-modal__error {
+  color: #842029;
+  font-size: 0.85rem;
+}
+
+.suspend-modal__status {
+  color: #0b2a5b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.suspend-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.suspend-modal__footer-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.suspend-modal__back {
+  border: none;
+  background: transparent;
+  color: #5b8fc7;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.suspend-modal__btn {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #0b2a5b;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suspend-modal__btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 700px) {
+  .suspend-modal__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .suspend-modal__funding,
+  .suspend-modal__cost,
+  .suspend-modal__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
