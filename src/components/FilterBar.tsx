@@ -1,25 +1,16 @@
 import './FilterBar.css'
+import type { FilterOptions, FilterValues } from '../api/ordersApi'
 
-const filters = [
-  { id: 'bureau', label: 'Bureau / Office', options: ['All', 'FWS', 'NPS', 'BLM'] },
-  {
-    id: 'clin',
-    label: 'CLIN',
-    options: ['All', '0001AA', '0002BB', '0003CC'],
-  },
-  { id: 'ru1', label: 'RU1 Nickname', options: ['All', 'Iowa - ANRS', 'Alabama - COLE'] },
-  { id: 'ru2', label: 'RU2 Nickname', options: ['All', 'ANRS', 'COLE', 'AFAC'] },
+const filterMeta = [
+  { id: 'bureau', label: 'Bureau / Office' },
+  { id: 'clin', label: 'CLIN' },
+  { id: 'ru1', label: 'RU1 Nickname' },
+  { id: 'ru2', label: 'RU2 Nickname' },
 ] as const
-
-export type FilterValues = {
-  bureau: string
-  clin: string
-  ru1: string
-  ru2: string
-}
 
 type FilterBarProps = {
   values: FilterValues
+  options?: FilterOptions
   onChange: (next: FilterValues) => void
   cartCount?: number
   onProductDetails?: () => void
@@ -27,10 +18,20 @@ type FilterBarProps = {
   onAddressBook?: () => void
 }
 
+export type { FilterValues }
+
+const fallbackOptions: FilterOptions = {
+  bureau: ['All'],
+  clin: ['All'],
+  ru1: ['All'],
+  ru2: ['All'],
+}
+
 export function FilterBar({
   values,
+  options = fallbackOptions,
   onChange,
-  cartCount = 1,
+  cartCount = 0,
   onProductDetails,
   onPlaceOrder,
   onAddressBook,
@@ -42,7 +43,7 @@ export function FilterBar({
   return (
     <section className="filter-bar" aria-label="Filters and actions">
       <div className="filter-bar__filters">
-        {filters.map((filter) => (
+        {filterMeta.map((filter) => (
           <label key={filter.id} className="filter-bar__field" htmlFor={filter.id}>
             <span className="filter-bar__label">{filter.label}</span>
             <select
@@ -51,7 +52,7 @@ export function FilterBar({
               value={values[filter.id]}
               onChange={(e) => update(filter.id, e.target.value)}
             >
-              {filter.options.map((option) => (
+              {options[filter.id]?.map((option) => (
                 <option key={option} value={option}>
                   {option === 'All' ? 'All + dropdown' : option}
                 </option>
@@ -73,7 +74,9 @@ export function FilterBar({
         </button>
         <button type="button" className="filter-bar__cart" aria-label={`Cart, ${cartCount} items`}>
           <CartIcon />
-          <span className="filter-bar__cart-badge">{cartCount}</span>
+          {cartCount > 0 ? (
+            <span className="filter-bar__cart-badge">{cartCount}</span>
+          ) : null}
         </button>
       </div>
     </section>

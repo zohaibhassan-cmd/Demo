@@ -1,12 +1,22 @@
 import './Header.css'
 
-const navItems = ['Home', 'Usage', 'Order'] as const
-
 type HeaderProps = {
-  active?: (typeof navItems)[number]
+  variant?: 'bureau' | 'admin'
+  active?: string
+  onNavigate?: (item: string) => void
 }
 
-export function Header({ active = 'Order' }: HeaderProps) {
+const bureauNav = ['Home', 'Usage', 'Order'] as const
+const adminNav = ['Contract', 'Funding', 'Bureau/Office', 'Order'] as const
+
+export function Header({
+  variant = 'bureau',
+  active = 'Order',
+  onNavigate,
+}: HeaderProps) {
+  const navItems = variant === 'admin' ? adminNav : bureauNav
+  const subtitle = variant === 'admin' ? 'ADMIN' : 'MOBILE DEVICES'
+
   return (
     <header className="app-header">
       <div className="app-header__brand">
@@ -14,8 +24,7 @@ export function Header({ active = 'Order' }: HeaderProps) {
           <span className="app-header__logo-mark">AQD</span>
         </span>
         <span className="app-header__title">
-          ACQUISITION NEXUS <span className="app-header__pipe">|</span> MOBILE
-          DEVICES
+          ACQUISITION NEXUS <span className="app-header__pipe">|</span> {subtitle}
         </span>
       </div>
       <nav className="app-header__nav" aria-label="Primary">
@@ -28,6 +37,7 @@ export function Header({ active = 'Order' }: HeaderProps) {
                 ? 'app-header__nav-btn app-header__nav-btn--active'
                 : 'app-header__nav-btn'
             }
+            onClick={() => onNavigate?.(item)}
           >
             {item}
           </button>

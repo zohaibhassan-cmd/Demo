@@ -1,36 +1,29 @@
 import { useState, Fragment } from 'react'
-import type { OrderRow } from '../api/ordersApi'
+import type { AdminOrderRow } from '../api/adminApi'
 import './OrdersTable.css'
 
-type OrdersTableProps = {
+type AdminOrdersTableProps = {
   title: string
-  rows: OrderRow[]
+  variant: 'pending' | 'historical'
+  rows: AdminOrderRow[]
   loading?: boolean
   search: string
   onSearchChange: (value: string) => void
   onExport: () => void
 }
 
-const columns = [
-  { key: 'expand', label: '' },
-  { key: 'orderDate', label: 'Order Date' },
-  { key: 'orderNumber', label: 'Order #' },
-  { key: 'nickname', label: 'Order Nickname' },
-  { key: 'clin', label: 'CLIN' },
-  { key: 'totalItems', label: 'Total Items' },
-  { key: 'totalPopCost', label: 'Total POP Cost' },
-  { key: 'orderedBy', label: 'Ordered By' },
-] as const
-
-export function OrdersTable({
+export function AdminOrdersTable({
   title,
+  variant,
   rows,
   loading = false,
   search,
   onSearchChange,
   onExport,
-}: OrdersTableProps) {
+}: AdminOrdersTableProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const dateColumnLabel =
+    variant === 'pending' ? 'Earliest Request Date' : 'To Vendor Date'
 
   return (
     <section className="orders-table">
@@ -55,17 +48,19 @@ export function OrdersTable({
         <table>
           <thead>
             <tr>
-              {columns.map((col) => (
-                <th key={col.key} scope="col">
-                  {col.label}
-                </th>
-              ))}
+              <th scope="col" />
+              <th scope="col">Order #</th>
+              <th scope="col">Order Date</th>
+              <th scope="col">CLIN</th>
+              <th scope="col">Total POP Cost</th>
+              <th scope="col">{dateColumnLabel}</th>
+              <th scope="col">Ordered By</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="orders-table__empty">
+                <td colSpan={7} className="orders-table__empty">
                   Loading orders…
                 </td>
               </tr>
@@ -74,6 +69,8 @@ export function OrdersTable({
             {!loading &&
               rows.map((row, index) => {
                 const open = expandedId === row.id
+                const dateValue =
+                  variant === 'pending' ? row.earliestRequestDate : row.toVendorDate
                 return (
                   <Fragment key={row.id}>
                     <tr className={index % 2 === 1 ? 'orders-table__row--alt' : undefined}>
@@ -88,19 +85,17 @@ export function OrdersTable({
                           <ExpandIcon />
                         </button>
                       </td>
-                      <td>{row.orderDate}</td>
                       <td>{row.orderNumber}</td>
-                      <td>{row.nickname}</td>
+                      <td>{row.orderDate}</td>
                       <td>{row.clin}</td>
-                      <td>{row.totalItems}</td>
                       <td>{row.totalPopCost}</td>
+                      <td>{dateValue ?? '—'}</td>
                       <td>{row.orderedBy}</td>
                     </tr>
                     {open ? (
                       <tr className="orders-table__detail-row">
-                        <td colSpan={8}>
-                          Itemization for {row.orderNumber} — {row.nickname}. Detail API:
-                          /api/orders/{row.id}
+                        <td colSpan={7}>
+                          Admin detail for {row.orderNumber}. API: /api/orders/{row.id}
                         </td>
                       </tr>
                     ) : null}
@@ -110,7 +105,7 @@ export function OrdersTable({
 
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="orders-table__empty">
+                <td colSpan={7} className="orders-table__empty">
                   No orders match your filters.
                 </td>
               </tr>
